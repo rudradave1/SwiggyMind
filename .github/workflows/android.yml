@@ -1,0 +1,6 @@
+- name: Build Debug APK
+  env:
+    OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+  run: |
+    echo "OPENROUTER_API_KEY=$OPENROUTER_API_KEY" >> local.properties
+    ./gradlew :androidApp:assembleDebug
