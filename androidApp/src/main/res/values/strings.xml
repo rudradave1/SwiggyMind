@@ -1,0 +1,69 @@
+<resources>
+    <string name="app_name">SwiggyMind</string>
+    <string name="currency_symbol">₹</string>
+
+    <!-- Chat Screen -->
+    <string name="chat_hint">What are you craving today?</string>
+    <string name="chat_title">SwiggyMind</string>
+    <string name="chat_subtitle">AI-powered food discovery</string>
+    <string name="chat_empty_tagline">Your AI food copilot is ready</string>
+    <string name="chat_send_button">Send</string>
+    <string name="chat_clear_history">Clear History</string>
+    <string name="chat_new_chat">New Chat</string>
+    <string name="chat_view_food_dna">View Food DNA</string>
+    <string name="chat_ai_status_cloud">AI Powered</string>
+    <string name="chat_ai_status_fallback">Smart Defaults</string>
+    <string name="chat_ai_status_offline">Offline Mode</string>
+    <string name="chat_offline_banner">AI reasoning is unavailable. Showing smart defaults.</string>
+    <string name="chat_offline_banner_dismiss">Dismiss</string>
+    <string name="chat_clear_history_confirm_title">Clear all history?</string>
+    <string name="chat_clear_history_confirm_body">This will delete all your conversations and recommendations.</string>
+    <string name="chat_clear_history_confirm">Clear Everything</string>
+    <string name="chat_clear_history_cancel">Cancel</string>
+    <string name="chat_grocery_shop_button">Shop on Instamart →</string>
+    <string name="chat_rec_why_match">Why this match?</string>
+    <string name="chat_rec_search_swiggy">Search on Swiggy</string>
+    <string name="chat_rec_share">Share</string>
+    <string name="chat_rec_ai_powered">AI-Powered</string>
+    <string name="chat_rec_top_rated">Top Rated</string>
+    <string name="chat_rec_mins">mins</string>
+    <string name="chat_rec_for_two">for two</string>
+    <string name="chip_quick">⚡ Quick</string>
+    <string name="chip_budget">💰 Budget</string>
+    <string name="chip_spicy">🌶️ Spicy</string>
+    <string name="chip_veg">🥗 Veg</string>
+    <string name="chip_biryani">🍚 Biryani</string>
+    <string name="chip_pizza">🍕 Pizza</string>
+    <string name="chip_dineout">🍽️ Dineout</string>
+
+    <!-- Food DNA Screen -->
+    <string name="dna_title">Food DNA</string>
+    <string name="dna_locked_title">Your Food DNA is forming…</string>
+    <string name="dna_locked_body">Chat a little more and SwiggyMind will decode your unique taste fingerprint.</string>
+    <string name="dna_locked_cta">Start Chatting</string>
+    <string name="dna_share_button">Share My Food DNA</string>
+    <string name="dna_section_cravings">Top Cravings</string>
+    <string name="dna_section_budget">Budget Range</string>
+    <string name="dna_section_spice">Spice Tolerance</string>
+    <string name="dna_section_diet">Diet Style</string>
+    <string name="dna_section_priority">Priority</string>
+    <string name="dna_ai_insight_title">AI Taste Insight</string>
+
+    <!-- History Screen -->
+    <string name="history_title">Conversation History</string>
+    <string name="history_empty_title">No food journeys yet.</string>
+    <string name="history_empty_subtitle">Start by telling SwiggyMind what you\'re craving.</string>
+    <string name="history_empty_cta">Start Exploring</string>
+    <string name="history_subtitle">Review your past food journeys and AI insights.</string>
+
+    <!-- Navigation -->
+    <string name="nav_chat">Chat</string>
+    <string name="nav_history">History</string>
+    <string name="nav_food_dna">Food DNA</string>
+
+    <!-- Accessibility -->
+    <string name="cd_restaurant_image">Restaurant image</string>
+    <string name="cd_send_message">Send message</string>
+    <string name="cd_back">Back</string>
+    <string name="cd_share">Share</string>
+</resources>

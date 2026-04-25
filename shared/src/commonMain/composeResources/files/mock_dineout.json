@@ -1,0 +1,86 @@
+[
+  {
+    "id": "d001",
+    "name": "The Rooftop Cafe",
+    "cuisine": ["Continental", "Cafe"],
+    "rating": 4.6,
+    "deliveryTimeMinutes": 0,
+    "costForTwo": 1200,
+    "location": "Satellite, Ahmedabad",
+    "imageUrl": "https://images.unsplash.com/photo-1544739313-0fad7206497f",
+    "isDineout": true,
+    "tags": ["rooftop", "view", "live-music"]
+  },
+  {
+    "id": "d002",
+    "name": "Earthen Oven",
+    "cuisine": ["North Indian", "Kebab"],
+    "rating": 4.5,
+    "deliveryTimeMinutes": 0,
+    "costForTwo": 2000,
+    "location": "Navrangpura, Ahmedabad",
+    "imageUrl": "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b",
+    "isDineout": true,
+    "tags": ["luxury", "fine-dining", "family"]
+  },
+  {
+    "id": "d003",
+    "name": "Artisan Pizza",
+    "cuisine": ["Italian", "Pizza"],
+    "rating": 4.7,
+    "deliveryTimeMinutes": 0,
+    "costForTwo": 1500,
+    "location": "Bodhadev, Ahmedabad",
+    "imageUrl": "https://images.unsplash.com/photo-1513104890138-7c749659a591",
+    "isDineout": true,
+    "tags": ["outdoor", "wood-fired", "pizza"]
+  },
+  {
+    "id": "d004",
+    "name": "The Taj Mahal Palace (Sea Lounge)",
+    "cuisine": ["High Tea", "Continental"],
+    "rating": 4.9,
+    "deliveryTimeMinutes": 0,
+    "costForTwo": 4000,
+    "location": "Colaba, Mumbai",
+    "imageUrl": "https://images.unsplash.com/photo-1544739313-0fad7206497f",
+    "isDineout": true,
+    "tags": ["luxury", "sea-view", "high-tea"]
+  },
+  {
+    "id": "d005",
+    "name": "Bastian",
+    "cuisine": ["Seafood", "Asian"],
+    "rating": 4.8,
+    "deliveryTimeMinutes": 0,
+    "costForTwo": 3500,
+    "location": "Bandra West, Mumbai",
+    "imageUrl": "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b",
+    "isDineout": true,
+    "tags": ["premium", "seafood", "celebrity"]
+  },
+  {
+    "id": "d006",
+    "name": "Toit Brewpub",
+    "cuisine": ["Continental", "Italian", "Brewery"],
+    "rating": 4.7,
+    "deliveryTimeMinutes": 0,
+    "costForTwo": 2000,
+    "location": "Indiranagar, Bangalore",
+    "imageUrl": "https://images.unsplash.com/photo-1513104890138-7c749659a591",
+    "isDineout": true,
+    "tags": ["brewery", "night-out", "pizza"]
+  },
+  {
+    "id": "d007",
+    "name": "The Leela Palace (Zen)",
+    "cuisine": ["Asian", "Japanese"],
+    "rating": 4.8,
+    "deliveryTimeMinutes": 0,
+    "costForTwo": 4500,
+    "location": "Old Airport Road, Bangalore",
+    "imageUrl": "https://images.unsplash.com/photo-1544739313-0fad7206497f",
+    "isDineout": true,
+    "tags": ["fine-dining", "luxury", "sushi"]
+  }
+]

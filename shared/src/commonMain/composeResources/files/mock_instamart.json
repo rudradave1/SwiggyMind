@@ -1,0 +1,52 @@
+[
+  {
+    "id": "i001",
+    "name": "Amul Gold Milk 500ml",
+    "category": "Dairy",
+    "price": 33,
+    "rating": 4.9,
+    "deliveryTimeMinutes": 15,
+    "imageUrl": "https://images.unsplash.com/photo-1550583724-125581976703",
+    "tags": ["milk", "dairy", "essential"]
+  },
+  {
+    "id": "i002",
+    "name": "Maggi 2-Minute Noodles",
+    "category": "Instant Food",
+    "price": 14,
+    "rating": 4.8,
+    "deliveryTimeMinutes": 15,
+    "imageUrl": "https://images.unsplash.com/photo-1612927601601-6638404737ce",
+    "tags": ["noodles", "quick", "snack"]
+  },
+  {
+    "id": "i003",
+    "name": "Coca-Cola 750ml",
+    "category": "Beverages",
+    "price": 45,
+    "rating": 4.7,
+    "deliveryTimeMinutes": 12,
+    "imageUrl": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97",
+    "tags": ["soft-drink", "beverage"]
+  },
+  {
+    "id": "i004",
+    "name": "Lays Classic Salted",
+    "category": "Snacks",
+    "price": 20,
+    "rating": 4.6,
+    "deliveryTimeMinutes": 10,
+    "imageUrl": "https://images.unsplash.com/photo-1566478989037-eec170784d0b",
+    "tags": ["chips", "snacks"]
+  },
+  {
+    "id": "i005",
+    "name": "Tata Salt 1kg",
+    "category": "Groceries",
+    "price": 28,
+    "rating": 4.9,
+    "deliveryTimeMinutes": 20,
+    "imageUrl": "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec",
+    "tags": ["salt", "grocery", "essential"]
+  }
+]
