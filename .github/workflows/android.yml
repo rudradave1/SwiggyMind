@@ -9,7 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -24,11 +23,10 @@ jobs:
       - name: Grant Gradle execute permission
         run: chmod +x gradlew
 
-      - name: Inject secrets into local.properties
+      - name: Inject API key
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-        run: |
-          echo "OPENROUTER_API_KEY=$OPENROUTER_API_KEY" >> local.properties
+        run: echo "OPENROUTER_API_KEY=$OPENROUTER_API_KEY" >> local.properties
 
       - name: Build Debug APK
         run: ./gradlew :androidApp:assembleDebug
