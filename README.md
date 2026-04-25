@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/KMP-Multiplatform-7F52FF?style=flat-square&logo=kotlin&logoColor=white"/>
   <img src="https://img.shields.io/badge/AI-OpenRouter-FC8019?style=flat-square"/>
   <img src="https://img.shields.io/badge/Built%20for-Swiggy%20Builders%20Club-FC8019?style=flat-square"/>
-  <img src="https://img.shields.io/github/license/rudradave1/SwiggyMind?style=flat-square"/>
+  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square"/>
   <img src="https://github.com/rudradave1/SwiggyMind/actions/workflows/android.yml/badge.svg"/>
 </p>
 
