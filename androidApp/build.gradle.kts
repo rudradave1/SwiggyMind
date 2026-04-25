@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
@@ -27,9 +29,15 @@ android {
     buildFeatures {
         buildConfig = true
     }
+    val localProps = Properties()
+    val localPropsFile = rootProject.file("local.properties")
+    if (localPropsFile.exists()) {
+        localProps.load(localPropsFile.inputStream())
+    }
+
     buildTypes {
         getByName("debug") {
-            buildConfigField("String", "OPENROUTER_API_KEY", "\"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\"")
+            buildConfigField("String", "OPENROUTER_API_KEY", "\"${localProps.getProperty("OPENROUTER_API_KEY", "")}\"")
         }
         getByName("release") {
             isMinifyEnabled = true
@@ -38,7 +46,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "OPENROUTER_API_KEY", "\"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\"")
+            buildConfigField("String", "OPENROUTER_API_KEY", "\"${localProps.getProperty("OPENROUTER_API_KEY", "")}\"")
         }
     }
     compileOptions {

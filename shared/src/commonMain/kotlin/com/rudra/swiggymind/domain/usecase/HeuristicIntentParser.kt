@@ -35,8 +35,7 @@ object HeuristicIntentParser {
             else -> null
         }
 
-        val mealType = when {
-            normalized.contains("grocery") || normalized.contains("instamart") || 
+        val hasGroceryKeywords = normalized.contains("grocery") || normalized.contains("instamart") || 
             normalized.contains("milk") || normalized.contains("egg") || 
             normalized.contains("bread") || normalized.contains("butter") ||
             normalized.contains("vegetable") || normalized.contains("fruit") ||
@@ -46,11 +45,15 @@ object HeuristicIntentParser {
             normalized.contains("rice") || normalized.contains("dal") ||
             normalized.contains("paneer") || normalized.contains("cheese") ||
             normalized.contains("soap") || normalized.contains("shampoo") ||
-            normalized.contains("chips") || normalized.contains("biscuit") ||
-            normalized.contains("buy") || normalized.contains("order some") ||
-            normalized.contains("need") -> "grocery"
+            normalized.contains("chips") || normalized.contains("biscuit")
+
+        val mealType = when {
+            hasGroceryKeywords -> "grocery"
             normalized.contains("dineout") || normalized.contains("book a table") || 
             normalized.contains("table for") || normalized.contains("restaurant booking") -> "dineout"
+            normalized.contains("buy") || normalized.contains("need") || normalized.contains("order some") -> {
+                if (cravings.isNotEmpty()) "food" else "grocery"
+            }
             else -> "food"
         }
 
