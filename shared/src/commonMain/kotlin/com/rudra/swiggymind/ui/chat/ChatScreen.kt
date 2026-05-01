@@ -166,7 +166,7 @@ fun ChatScreen(
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = SwiggyColors.Surface)
                 )
                 
-                if (!hasDismissedOfflineBanner && uiState.aiStatus != AiStatus.CLOUD) {
+                if (!hasDismissedOfflineBanner && uiState.aiStatus == AiStatus.FALLBACK && !uiState.isMcpEnabled) {
                     Surface(
                         color = Color(0xFFFFF8E1),
                         modifier = Modifier.fillMaxWidth()
@@ -306,19 +306,20 @@ private fun EmptyChatState(
             )
 
             val dotColor = when (aiStatus) {
-                AiStatus.CLOUD -> SwiggyColors.Success
+                AiStatus.CLOUD, AiStatus.MCP -> SwiggyColors.Success
                 AiStatus.FALLBACK -> Color(0xFFF57F17)
                 AiStatus.OFFLINE -> Color(0xFFC62828)
             }
             
             val statusText = when (aiStatus) {
+                AiStatus.MCP -> "Live MCP · Builders Club"
                 AiStatus.CLOUD -> "AI-Powered · OpenRouter"
                 AiStatus.FALLBACK -> "Smart defaults active"
                 AiStatus.OFFLINE -> "Offline mode"
             }
             
             val textColor = when (aiStatus) {
-                AiStatus.CLOUD -> SwiggyColors.Success
+                AiStatus.CLOUD, AiStatus.MCP -> SwiggyColors.Success
                 else -> SwiggyColors.Subtle
             }
 
@@ -449,10 +450,14 @@ fun ChatBubble(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = if (isLive) "✦ Mind Intelligence" else "Smart Defaults",
+                    text = when {
+                        message.isMcp -> "✦ Live MCP"
+                        isLive -> "✦ Mind Intelligence"
+                        else -> "Smart Defaults"
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = if (isLive) SwiggyColors.Success else SwiggyColors.Subtle
+                    color = if (isLive || message.isMcp) SwiggyColors.Success else SwiggyColors.Subtle
                 )
             }
         }
@@ -509,7 +514,8 @@ fun ChatBubble(
                             restaurant = recommendation.restaurant,
                             reasoning = recommendation.reason,
                             isAiFallback = message.isAiFallback,
-                            isRelaxed = message.isRelaxed
+                            isRelaxed = message.isRelaxed,
+                            isMcp = message.isMcp
                         )
                     }
                 }
@@ -593,7 +599,8 @@ fun RecommendationCard(
     restaurant: Restaurant,
     reasoning: String,
     isAiFallback: Boolean = false,
-    isRelaxed: Boolean = false
+    isRelaxed: Boolean = false,
+    isMcp: Boolean = false
 ) {
     var expanded by remember { mutableStateOf(false) }
     val uriHandler = LocalUriHandler.current
@@ -660,13 +667,15 @@ fun RecommendationCard(
                     Surface(
                         shape = RoundedCornerShape(4.dp),
                         color = when {
+                            isMcp -> SwiggyColors.Primary.copy(alpha = 0.1f)
                             isAiFallback || isRelaxed -> Color(0xFF757575).copy(alpha = 0.1f)
                             else -> SwiggyColors.Primary.copy(alpha = 0.1f)
                         },
-                        border = BorderStroke(0.5.dp, if (isAiFallback || isRelaxed) Color(0xFF757575).copy(alpha = 0.2f) else SwiggyColors.Primary.copy(alpha = 0.2f))
+                        border = BorderStroke(0.5.dp, if (isAiFallback || isRelaxed && !isMcp) Color(0xFF757575).copy(alpha = 0.2f) else SwiggyColors.Primary.copy(alpha = 0.2f))
                     ) {
                         Text(
                             when {
+                                isMcp -> "MCP-Powered"
                                 isAiFallback || isRelaxed -> "Top Rated"
                                 else -> "AI-Powered"
                             },
@@ -674,6 +683,7 @@ fun RecommendationCard(
                             fontSize = 10.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = when {
+                                isMcp -> SwiggyColors.Primary
                                 isAiFallback || isRelaxed -> Color(0xFF757575)
                                 else -> SwiggyColors.Primary
                             }

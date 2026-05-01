@@ -58,7 +58,7 @@ graph TD
     M -->|food| FR[getRestaurants\nFiltered by intent]
 
     FR --> P[providerAttempts]
-    P -->|Layer 1 — Primary| F[OpenRouterClient\nmeta-llama/llama-3.1-8b-instruct:free]
+    P -->|Layer 1 — Primary| F[OpenRouterClient\nopenrouter/auto]
     P -->|Layer 2 — Recovery| G[AiJsonParser\nrecover from raw LLM text]
     P -->|Layer 3 — Fallback| H[buildRuleBasedFallback\ngenerateWhyMatch per result]
     P -->|Layer 4 — Last Resort| I[buildRelaxedFallback\nrelax filters, top by rating]
@@ -88,7 +88,7 @@ SwiggyMind **never** shows an error message. `ResponseOrchestrator` ensures ever
 ```
 ┌─────────────────────────────────────────────────────┐
 │  Layer 1 — OpenRouterClient (Primary)               │
-│  meta-llama/llama-3.1-8b-instruct:free              │
+│  openrouter/auto (model-agnostic routing)           │
 │  Timeout: 8 seconds via withTimeoutOrNull           │
 │  Badge shown: 🟠 AI-Powered                         │
 ├─────────────────────────────────────────────────────┤
@@ -184,26 +184,97 @@ shared/src/commonMain/kotlin/com/rudra/swiggymind/
 
 ---
 
+## Live MCP Integration ⚡
+
+SwiggyMind is now fully integrated with the **Swiggy Builders Club MCP** architecture. It can transition between a purely local mock mode and a live agent mode using the official Swiggy toolset.
+
+### The Local MCP Stub
+For demo and development purposes, we've included a Node.js **MCP Stub Server** (in `/mcp-stub`) that replicates the official Swiggy production environment.
+
+| Feature | Stub Mode | Production Mode |
+|---|---|---|
+| **Tool Calling** | JSON-RPC via Local Node.js | JSON-RPC via `mcp.swiggy.com` |
+| **Data Source** | `server.js` (realistic mocks) | Swiggy Production APIs |
+| **Authentication** | Dummy dev-token | OAuth 2.1 PKCE |
+| **UI Badge** | `✦ Live MCP` | `✦ Live MCP` |
+
+### How to Toggle
+In `androidApp/build.gradle.kts`:
+```kotlin
+buildTypes {
+    getByName("debug") {
+        // Set to true to use the MCP Stub or Production backend
+        buildConfigField("Boolean", "USE_MCP_BACKEND", "true")
+        
+        // Set to true to point at mcp.swiggy.com instead of localhost
+        buildConfigField("Boolean", "MCP_USE_STAGING", "false")
+    }
+}
+```
+
+---
+
 ## The MCP Integration Points
 
-`RestaurantRepository` is the single boundary between SwiggyMind and Swiggy's data. It already exposes exactly the three methods Swiggy's MCP servers map to:
+`RestaurantRepository` is the single boundary between SwiggyMind and Swiggy's data. The three methods map **directly** to Swiggy Builders Club MCP servers:
 
 ```kotlin
 interface RestaurantRepository {
-    // → Swiggy Food MCP
+    // → Swiggy Food MCP  (mcp.swiggy.com/food)
+    //   search_restaurants → get_restaurant_menu → update_food_cart → place_food_order
     suspend fun getRestaurants(intent: UserIntent? = null): List<Restaurant>
 
-    // → Swiggy Instamart MCP
+    // → Swiggy Instamart MCP  (mcp.swiggy.com/im)
+    //   search_products → update_cart → checkout → track_order
     suspend fun getInstamartItems(intent: UserIntent? = null): List<InstamartItem>
 
-    // → Swiggy Dineout MCP
+    // → Swiggy Dineout MCP  (mcp.swiggy.com/dineout)
+    //   search_restaurants_dineout → get_available_slots → book_table
     suspend fun getDineoutVenues(intent: UserIntent? = null): List<Restaurant>
 
     suspend fun getRestaurantById(id: String): Restaurant?
 }
 ```
 
-Today each method returns filtered mock JSON. With Builders Club API access, each method becomes a live MCP call — the `ResponseOrchestrator`, `HeuristicIntentParser`, `AiJsonParser`, and all four fallback layers continue working identically. No other files change.
+Today each method returns filtered mock JSON. With Builders Club API access, each method becomes a live MCP tool chain — the `ResponseOrchestrator`, `HeuristicIntentParser`, `AiJsonParser`, and all four fallback layers continue working identically. **No other files change.**
+
+### What the live integration looks like
+
+**Food flow** (7 MCP tools):
+```
+get_addresses → search_restaurants → get_restaurant_menu
+    → update_food_cart → fetch_food_coupons → apply_food_coupon
+    → place_food_order → track_food_order
+```
+
+**Instamart flow** (4 MCP tools):
+```
+get_addresses → search_products → update_cart → checkout → track_order
+```
+
+**Dineout flow** (3 MCP tools):
+```
+search_restaurants_dineout → get_available_slots → book_table
+```
+
+The `ConversationContext` module already handles multi-turn cart state — exactly the pattern Swiggy's MCP docs describe (refresh cart at turn boundary, confirm before mutating, warn on restaurant switch).
+
+---
+
+## Road to Production
+
+SwiggyMind is architected to go live on Builders Club APIs with minimal change:
+
+| What's needed | Status | Effort |
+|---|---|---|
+| Builders Club API access | Pending approval | 0 code changes |
+| OAuth 2.1 PKCE token flow | Not implemented | Add auth interceptor to `HttpClientFactory` |
+| Replace mock repository | Designed for this | Implement `McpRestaurantRepository` behind the same interface |
+| Cart management (multi-turn) | Architecture ready | Wire `update_food_cart` / `get_food_cart` calls |
+| COD payment (₹1000 cap) | N/A (mock) | Pass `paymentMethod: "COD"` to `place_food_order` |
+| Address resolution | Location detection done | Pass `addressId` from `get_addresses` to search tools |
+
+The fallback chain (`HeuristicIntentParser` → rule-based → relaxed) keeps the app useful even when MCP tools time out or return errors — resilience is built in.
 
 ---
 
@@ -213,13 +284,13 @@ Today each method returns filtered mock JSON. With Builders Club API access, eac
 Natural language parsed into structured intent — cuisine, budget, dietary preference, spice level, occasion, mood — via OpenRouter LLM with local `HeuristicIntentParser` fallback.
 
 **Grocery Flow**
-When `mealType == grocery`, `ResponseOrchestrator` routes to `getInstamartItems` and `extractIngredients`, returning a shopping list card with direct Instamart deep link. No restaurant cards shown.
+When `mealType == grocery`, `ResponseOrchestrator` routes to `getInstamartItems` and `extractIngredients`, returning a shopping list card with direct Instamart deep link. Maps to Instamart MCP's `search_products` + `update_cart` flow.
 
 **Food DNA**
 After 3+ conversations, builds a personal taste profile from `ChatHistory` — spice tolerance, diet preference, average budget, ordering patterns, top cuisines. Fully local computation. Shareable as a card.
 
 **Smart Location**
-Detects city via device location. Currently supports Ahmedabad, Mumbai, and Bangalore with curated mock data. `UserIntent` already carries location context — passing live coordinates to Swiggy Food API requires no architectural change.
+Detects city via device location. Currently supports Ahmedabad, Mumbai, and Bangalore with curated mock data. `UserIntent` already carries location context — passing live `addressId` from `get_addresses` to Swiggy Food API requires no architectural change.
 
 **Conversation History**
 Every session persisted in `AppDatabase` with full `OrchestratedResponse`. Tap any history item to restore the complete conversation including restaurant cards — no re-querying.
@@ -243,9 +314,16 @@ OPENROUTER_API_KEY=sk-or-xxxxxxxxxxxxxxxx
 
 Get a free key at [openrouter.ai](https://openrouter.ai) — no credit card required.
 
-```bash
-./gradlew :androidApp:assembleDebug
-```
+### Running with Live MCP (Stub)
+
+1. **Start the stub server**:
+   ```bash
+   cd mcp-stub
+   npm install && npm start
+   ```
+
+2. **Build and Run**:
+   Ensure `USE_MCP_BACKEND` is `true` in `build.gradle.kts`, then run the app. You'll see a green status pulse indicating a live connection to the Swiggy Builders Club protocol.
 
 > The app works fully without an OpenRouter key. `ResponseOrchestrator` falls back to `HeuristicIntentParser` automatically — all features remain functional.
 

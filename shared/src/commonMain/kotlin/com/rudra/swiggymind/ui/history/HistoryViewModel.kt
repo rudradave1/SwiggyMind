@@ -12,9 +12,11 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import com.rudra.swiggymind.data.local.ChatMessageEntity
 import kotlinx.datetime.Clock
+import com.rudra.swiggymind.util.currentTimeMillis
 
 class HistoryViewModel(
-    private val chatHistoryDao: ChatHistoryDao
+    private val chatHistoryDao: ChatHistoryDao,
+    private val shouldSeedDefaults: Boolean = true
 ) : ViewModel() {
 
     init {
@@ -29,10 +31,12 @@ class HistoryViewModel(
         )
 
     private fun seedInitialData() {
+        if (!shouldSeedDefaults) return
+        
         viewModelScope.launch {
             val isEmpty = chatHistoryDao.getAllConversations().map { it.isEmpty() }.first()
             if (isEmpty) {
-                val now = Clock.System.now().toEpochMilliseconds()
+                val now = currentTimeMillis()
                 val samples = listOf(
                     ChatConversation("c1", "Friday Night Pizza", "Found top-rated spicy pizza spots within your budget.", now - 86400000),
                     ChatConversation("c2", "Healthy Dinner Prep", "Parsed ingredients for Grilled Chicken Salad & Quinoa.", now - 172800000),

@@ -21,15 +21,22 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.datetime.Clock
+import com.rudra.swiggymind.util.currentTimeMillis
 
 class ChatViewModel(
     private val responseOrchestrator: ResponseOrchestrator,
     private val chatHistoryDao: ChatHistoryDao,
     private val restaurantRepository: RestaurantRepository,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val isMcpEnabled: Boolean = false
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(ChatUiState())
+    private val _uiState = MutableStateFlow(
+        ChatUiState(
+            isMcpEnabled = isMcpEnabled,
+            aiStatus = if (isMcpEnabled) AiStatus.MCP else AiStatus.CLOUD
+        )
+    )
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
     val currentCity = settingsRepository.currentCity
@@ -98,7 +105,11 @@ class ChatViewModel(
 
     fun startNewChat() {
         currentConversationId = randomId()
-        _uiState.value = ChatUiState(currentCity = currentCity.value)
+        _uiState.value = ChatUiState(
+            currentCity = currentCity.value,
+            isMcpEnabled = _uiState.value.isMcpEnabled,
+            aiStatus = if (_uiState.value.isMcpEnabled) AiStatus.MCP else AiStatus.CLOUD
+        )
     }
 
     fun clearAllSessions() {
@@ -139,10 +150,12 @@ class ChatViewModel(
                     isAiFallback = response.isAiFallback,
                     isRelaxed = response.isRelaxed,
                     isGrocery = response.isGrocery,
-                    ingredients = response.ingredients
+                    ingredients = response.ingredients,
+                    isMcp = response.isMcp
                 )
 
                 val newAiStatus = when {
+                    isMcpEnabled -> AiStatus.MCP
                     response.isLlmOffline -> AiStatus.OFFLINE
                     response.isAiFallback -> AiStatus.FALLBACK
                     else -> AiStatus.CLOUD
@@ -154,8 +167,7 @@ class ChatViewModel(
                     aiStatus = newAiStatus,
                     isLlmOffline = response.isLlmOffline
                 )
-
-                val now = Clock.System.now().toEpochMilliseconds()
+                val now = currentTimeMillis()
 
                 if (existingMessages.isEmpty()) {
                     val title = if (trimmedMessage.length > 28) trimmedMessage.take(28) + "..." else trimmedMessage
@@ -218,7 +230,7 @@ class ChatViewModel(
 }
 
 enum class AiStatus {
-    CLOUD, FALLBACK, OFFLINE
+    CLOUD, FALLBACK, OFFLINE, MCP
 }
 
 data class ChatUiState(
@@ -226,7 +238,8 @@ data class ChatUiState(
     val isLoading: Boolean = false,
     val aiStatus: AiStatus = AiStatus.CLOUD,
     val isLlmOffline: Boolean = false,
-    val currentCity: String = AppConstants.DEFAULT_CITY
+    val currentCity: String = AppConstants.DEFAULT_CITY,
+    val isMcpEnabled: Boolean = false
 )
 
 data class ChatMessage(
@@ -236,5 +249,6 @@ data class ChatMessage(
     val isAiFallback: Boolean = false,
     val isRelaxed: Boolean = false,
     val isGrocery: Boolean = false,
-    val ingredients: List<String> = emptyList()
+    val ingredients: List<String> = emptyList(),
+    val isMcp: Boolean = false
 )

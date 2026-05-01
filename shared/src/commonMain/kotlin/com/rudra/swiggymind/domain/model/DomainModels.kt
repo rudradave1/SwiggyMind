@@ -85,5 +85,6 @@ data class OrchestratedResponse(
     val isRelaxed: Boolean = false,
     val ingredients: List<String> = emptyList(),
     val isGrocery: Boolean = false,
-    val isLlmOffline: Boolean = false
+    val isLlmOffline: Boolean = false,
+    val isMcp: Boolean = false
 )

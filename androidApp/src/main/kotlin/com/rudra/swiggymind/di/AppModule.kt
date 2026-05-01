@@ -9,6 +9,7 @@ import com.rudra.swiggymind.data.local.AppDatabase
 import com.rudra.swiggymind.data.local.ChatHistoryDao
 import com.rudra.swiggymind.data.local.getDatabaseBuilder
 import com.rudra.swiggymind.data.repository.AndroidSettingsRepository
+import com.rudra.swiggymind.data.repository.McpRestaurantRepository
 import com.rudra.swiggymind.data.repository.MockRestaurantRepository
 import com.rudra.swiggymind.data.repository.RestaurantRepository
 import com.rudra.swiggymind.domain.repository.SettingsRepository
@@ -57,7 +58,14 @@ object AppModule {
     @Provides
     @Singleton
     fun provideRestaurantRepository(settingsRepository: SettingsRepository): RestaurantRepository {
-        return MockRestaurantRepository(settingsRepository)
+        return if (BuildConfig.USE_MCP_BACKEND) {
+            McpRestaurantRepository(
+                accessToken = BuildConfig.MCP_ACCESS_TOKEN,
+                useStaging = BuildConfig.MCP_USE_STAGING
+            )
+        } else {
+            MockRestaurantRepository(settingsRepository)
+        }
     }
 
     @Provides
@@ -74,10 +82,15 @@ object AppModule {
     }
 
     @Provides
+    @Singleton
     fun provideResponseOrchestrator(
         settingsRepository: SettingsRepository,
         restaurantRepository: RestaurantRepository
     ): ResponseOrchestrator {
-        return ResponseOrchestrator(settingsRepository, restaurantRepository)
+        return ResponseOrchestrator(
+            settingsRepository,
+            restaurantRepository,
+            isMcpEnabled = BuildConfig.USE_MCP_BACKEND
+        )
     }
 }

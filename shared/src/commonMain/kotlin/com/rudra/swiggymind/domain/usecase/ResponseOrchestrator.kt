@@ -16,7 +16,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 class ResponseOrchestrator(
     private val settingsRepository: SettingsRepository,
-    private val restaurantRepository: RestaurantRepository
+    private val restaurantRepository: RestaurantRepository,
+    private val isMcpEnabled: Boolean = false
 ) {
     suspend operator fun invoke(
         userMessage: String,
@@ -45,7 +46,8 @@ class ResponseOrchestrator(
                     summary = summary,
                     recommendations = emptyList(),
                     isGrocery = true,
-                    ingredients = finalItems.ifEmpty { listOf("Milk", "Fresh Bread", "Amul Butter", "Farm Eggs") }
+                    ingredients = finalItems.ifEmpty { listOf("Milk", "Fresh Bread", "Amul Butter", "Farm Eggs") },
+                    isMcp = isMcpEnabled
                 )
             }
 
@@ -117,7 +119,8 @@ class ResponseOrchestrator(
         if (mapped.isEmpty()) return null
         return OrchestratedResponse(
             summary = response.summary.ifBlank { "Here's what I found based on your request" },
-            recommendations = mapped
+            recommendations = mapped,
+            isMcp = isMcpEnabled
         )
     }
 
@@ -166,7 +169,8 @@ class ResponseOrchestrator(
 
         return OrchestratedResponse(
             summary = "Here's what I found based on your request",
-            recommendations = matches.values.take(AppConstants.MAX_RECOMMENDATIONS)
+            recommendations = matches.values.take(AppConstants.MAX_RECOMMENDATIONS),
+            isMcp = isMcpEnabled
         )
     }
 
@@ -184,7 +188,8 @@ class ResponseOrchestrator(
         return OrchestratedResponse(
             summary = "I found these highly rated options for you",
             recommendations = top,
-            isAiFallback = true
+            isAiFallback = !isMcpEnabled,
+            isMcp = isMcpEnabled
         )
     }
 
@@ -236,8 +241,9 @@ class ResponseOrchestrator(
                 "I couldn't find an exact match, but here are some top picks that fit your filters"
                 else "I couldn't find an exact match, but here are our top picks",
             recommendations = top,
-            isAiFallback = true,
-            isRelaxed = true
+            isAiFallback = !isMcpEnabled,
+            isRelaxed = true,
+            isMcp = isMcpEnabled
         )
     }
 

@@ -33,4 +33,17 @@ object AppConstants {
     const val OPENROUTER_REFERER = "https://github.com/rudradave1/swiggymind"
     const val OPENROUTER_APP_TITLE = "SwiggyMind"
     const val MAX_TOKENS = 500
+
+    // Swiggy Builders Club — MCP endpoints
+    const val MCP_BASE_URL_LOCAL   = "http://10.0.2.2:3000"       // local stub (Android emulator)
+    const val MCP_BASE_URL_STAGING = "https://mcp.swiggy.com"     // swap when staging creds land
+    const val MCP_SERVER_FOOD      = "/food"
+    const val MCP_SERVER_INSTAMART = "/im"
+    const val MCP_SERVER_DINEOUT   = "/dineout"
+    const val MCP_FALLBACK_ADDRESS_ID = "addr_1"                  // used when get_addresses fails
+
+    // Images
+    const val FALLBACK_IMAGE_URL         = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400"
+    const val FALLBACK_DINEOUT_IMAGE_URL = "https://images.unsplash.com/photo-1544739313-0fad7206497f?w=400"
+    const val INSTAMART_DELIVERY_MINS    = 20
 }

@@ -11,7 +11,9 @@ class SharedComponent(
     val chatHistoryDao: ChatHistoryDao,
     val settingsRepository: SettingsRepository,
     val responseOrchestrator: ResponseOrchestrator,
-    val llmClient: LLMClient
+    val llmClient: LLMClient,
+    val shouldSeedDefaults: Boolean = true,
+    val isMcpEnabled: Boolean = false
 )
 
 var sharedComponent: SharedComponent? = null

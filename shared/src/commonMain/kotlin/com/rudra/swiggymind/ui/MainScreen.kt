@@ -59,7 +59,7 @@ fun MainScreen() {
                         selected = selected,
                         onClick = {
                             navController.navigate(screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
+                                popUpTo(navController.graph.findStartDestination().route ?: Screen.Assistant.route) {
                                     saveState = true
                                 }
                                 launchSingleTop = true
@@ -100,7 +100,8 @@ fun MainScreen() {
                         sc.responseOrchestrator,
                         sc.chatHistoryDao,
                         sc.restaurantRepository,
-                        sc.settingsRepository
+                        sc.settingsRepository,
+                        sc.isMcpEnabled
                     )
                 }
                 LaunchedEffect(convId) {
@@ -116,19 +117,19 @@ fun MainScreen() {
             composable(Screen.History.route) {
                 val sc = sharedComponent!!
                 val historyViewModel: HistoryViewModel = viewModel {
-                    HistoryViewModel(sc.chatHistoryDao)
+                    HistoryViewModel(sc.chatHistoryDao, sc.shouldSeedDefaults)
                 }
                 HistoryScreen(
                     viewModel = historyViewModel,
                     onConversationClick = { convId ->
                         navController.navigate(Screen.Assistant.route + "?convId=$convId") {
-                            popUpTo(navController.graph.findStartDestination().id)
+                            popUpTo(navController.graph.findStartDestination().route ?: Screen.Assistant.route)
                             launchSingleTop = true
                         }
                     },
                     onExploreClick = {
                         navController.navigate(Screen.Assistant.route) {
-                            popUpTo(navController.graph.findStartDestination().id)
+                            popUpTo(navController.graph.findStartDestination().route ?: Screen.Assistant.route)
                             launchSingleTop = true
                         }
                     }

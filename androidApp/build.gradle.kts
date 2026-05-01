@@ -37,7 +37,10 @@ android {
 
     buildTypes {
         getByName("debug") {
-            buildConfigField("String", "OPENROUTER_API_KEY", "\"${localProps.getProperty("OPENROUTER_API_KEY", "")}\"")
+            buildConfigField("String",  "OPENROUTER_API_KEY",  "\"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\"")
+            buildConfigField("Boolean", "USE_MCP_BACKEND",    "true")
+            buildConfigField("Boolean", "MCP_USE_STAGING",    "false")
+            buildConfigField("String",  "MCP_ACCESS_TOKEN",   "\"dev-token-localhost\"")
         }
         getByName("release") {
             isMinifyEnabled = true
@@ -46,7 +49,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "OPENROUTER_API_KEY", "\"${localProps.getProperty("OPENROUTER_API_KEY", "")}\"")
+            buildConfigField("String",  "OPENROUTER_API_KEY",  "\"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\"")
+            buildConfigField("Boolean", "USE_MCP_BACKEND",    "false")
+            buildConfigField("Boolean", "MCP_USE_STAGING",    "false")
+            buildConfigField("String",  "MCP_ACCESS_TOKEN",   "\"\"")
         }
     }
     compileOptions {
