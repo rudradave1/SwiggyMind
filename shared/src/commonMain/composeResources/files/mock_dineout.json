@@ -82,5 +82,29 @@
     "imageUrl": "https://images.unsplash.com/photo-1544739313-0fad7206497f",
     "isDineout": true,
     "tags": ["fine-dining", "luxury", "sushi"]
+  },
+  {
+    "id": "d008",
+    "name": "Byg Brewski Brewing Company",
+    "cuisine": ["Brewery", "Pizza", "Asian"],
+    "rating": 4.7,
+    "deliveryTimeMinutes": 0,
+    "costForTwo": 2500,
+    "location": "Sarjapur Road, Bangalore",
+    "imageUrl": "https://images.unsplash.com/photo-1513104890138-7c749659a591",
+    "isDineout": true,
+    "tags": ["outdoor", "lively", "large-group"]
+  },
+  {
+    "id": "d009",
+    "name": "Olive Bar & Kitchen",
+    "cuisine": ["Mediterranean", "European"],
+    "rating": 4.8,
+    "deliveryTimeMinutes": 0,
+    "costForTwo": 3500,
+    "location": "Khar, Mumbai",
+    "imageUrl": "https://images.unsplash.com/photo-1544739313-0fad7206497f",
+    "isDineout": true,
+    "tags": ["romantic", "white-vibe", "fine-dining"]
   }
 ]

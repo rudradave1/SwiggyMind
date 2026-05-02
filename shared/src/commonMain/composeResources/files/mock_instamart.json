@@ -48,5 +48,55 @@
     "deliveryTimeMinutes": 20,
     "imageUrl": "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec",
     "tags": ["salt", "grocery", "essential"]
+  },
+  {
+    "id": "i006",
+    "name": "Dettol Liquid Handwash 200ml",
+    "category": "Personal Care",
+    "price": 99,
+    "rating": 4.8,
+    "deliveryTimeMinutes": 12,
+    "imageUrl": "https://images.unsplash.com/photo-1618331835717-801e976710b2?w=400",
+    "tags": ["hygiene", "essential", "soap"]
+  },
+  {
+    "id": "i007",
+    "name": "Head & Shoulders Shampoo",
+    "category": "Personal Care",
+    "price": 180,
+    "rating": 4.7,
+    "deliveryTimeMinutes": 15,
+    "imageUrl": "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=400",
+    "tags": ["shampoo", "care"]
+  },
+  {
+    "id": "i008",
+    "name": "Parle-G Gold Biscuit",
+    "category": "Snacks",
+    "price": 10,
+    "rating": 4.9,
+    "deliveryTimeMinutes": 8,
+    "imageUrl": "https://images.unsplash.com/photo-1558961359-1d99283f085c?w=400",
+    "tags": ["biscuit", "chai", "snack"]
+  },
+  {
+    "id": "i009",
+    "name": "Fortune Sunlite Oil 1L",
+    "category": "Groceries",
+    "price": 145,
+    "rating": 4.6,
+    "deliveryTimeMinutes": 25,
+    "imageUrl": "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=400",
+    "tags": ["oil", "cooking", "essential"]
+  },
+  {
+    "id": "i010",
+    "name": "Aashirvaad Atta 5kg",
+    "category": "Groceries",
+    "price": 260,
+    "rating": 4.9,
+    "deliveryTimeMinutes": 30,
+    "imageUrl": "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400",
+    "tags": ["flour", "grocery", "essential"]
   }
 ]

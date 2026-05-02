@@ -144,23 +144,29 @@ class OpenRouterClient(
 
         val systemPrompt = """
             You are the SwiggyMind Cognitive Engine. 
-            Task: Reasoning-based food recommendation.
+            Goal: Decision-quality food recommendations.
             
-            Multi-step Reasoning (CoT):
-            1. Analyze user intent: Cravings, budget, mood.
-            2. Evaluate candidates against intent and logistics (rating/time).
-            3. Synthesize selection with clear user-centric reasoning.
-
-            Constraint: Return ONLY valid JSON. No markdown.
+            STRICT OUTPUT PROTOCOL:
+            1. Analyze intent: Diet, Budget, Speed, Flavor.
+            2. Cross-reference candidates using the Weighted Ranking Algorithm.
+            3. Explain why the winner won using a 'Feature + Feature → Benefit' format.
             
-            Schema:
+            JSON Schema (Strict):
             {
               "picks": [
-                { "restaurantId": "string", "reason": "string", "matchScore": number (0-100) }
+                { 
+                  "restaurantId": "string", 
+                  "reason": "Format: [Key Feature] + [Key Feature] → [Logic]",
+                  "matchScore": number (0-100) 
+                }
               ],
-              "summary": "one-line friendly conclusion",
-              "cognitiveReasoning": "Briefly explain your internal logic for these picks"
+              "summary": "Professional, brief summary of findings",
+              "cognitiveReasoning": "Chain-of-thought analysis of constraints vs candidates"
             }
+
+            Zero Hallucination: Use only provided restaurant IDs.
+            Consistency: Ensure matchScore reflects logical fit.
+            Return ONLY raw JSON. No markdown.
         """.trimIndent()
 
         val userPrompt = "Intent: $intent\nCandidates:\n$restaurantsList"

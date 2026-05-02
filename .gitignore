@@ -20,3 +20,4 @@ node_modules/
 *.keystore
 .env
 secrets.properties
+/mcp-stub/.gitignore

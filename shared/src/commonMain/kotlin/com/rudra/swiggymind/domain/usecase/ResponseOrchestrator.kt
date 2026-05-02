@@ -20,6 +20,9 @@ class ResponseOrchestrator(
     private val restaurantRepository: RestaurantRepository,
     private val isMcpEnabled: Boolean = false
 ) {
+    // Session-level "Mind Cache" for stateful reasoning
+    private var lastIntent: UserIntent? = null
+
     suspend operator fun invoke(
         userMessage: String,
         conversationHistory: List<LlmMessage> = emptyList()
@@ -32,19 +35,26 @@ class ResponseOrchestrator(
                 return handleGroceryIntent(userMessage, intent)
             }
 
+            // Stateful Logic: Merge current intent with last known preferences if turn is short
+            val contextIntent = if (userMessage.length < 15) {
+                mergeIntents(intent, lastIntent)
+            } else intent
+            
+            lastIntent = contextIntent
+
             var allRestaurants = restaurantRepository.getRestaurants()
             if (allRestaurants.isEmpty()) {
                 // Critical Fallback: If primary repo (MCP) is empty, use mock data pool for reasoning
                 allRestaurants = MockRestaurantRepository(settingsRepository).getRestaurants()
             }
             
-            var filteredCandidates = restaurantRepository.getRestaurants(intent)
+            var filteredCandidates = restaurantRepository.getRestaurants(contextIntent)
             if (filteredCandidates.isEmpty() && allRestaurants.isNotEmpty()) {
                 filteredCandidates = allRestaurants
             }
             
             // Core Logic: Mind Engine Ranking
-            val rankedCandidates = rankCandidates(intent, filteredCandidates.ifEmpty { allRestaurants })
+            val rankedCandidates = rankCandidates(contextIntent, filteredCandidates.ifEmpty { allRestaurants })
             
             if (rankedCandidates.isEmpty()) {
                 // If even after all fallbacks we have nothing, this shouldn't happen with baseRepo
@@ -63,7 +73,7 @@ class ResponseOrchestrator(
             providerAttempts().forEach { provider ->
                 llmAttempted = true
                 val raw = withTimeoutOrNull(AppConstants.OPENROUTER_TIMEOUT_MS) {
-                    provider.generateRecommendationRaw(intent, rankedCandidates, trimmedContext)
+                    provider.generateRecommendationRaw(contextIntent, rankedCandidates, trimmedContext)
                 }
 
                 if (!raw.isNullOrBlank()) {
@@ -83,11 +93,20 @@ class ResponseOrchestrator(
                 return partialRecovery.copy(isLlmOffline = llmOffline)
             }
 
-            buildRuleBasedFallback(rankedCandidates, intent).copy(isLlmOffline = llmOffline)
+            buildRuleBasedFallback(rankedCandidates, contextIntent).copy(isLlmOffline = llmOffline)
         } catch (e: Exception) {
             val allRestaurants = restaurantRepository.getRestaurants()
             buildRelaxedFallback(allRestaurants, UserIntent(rawQuery = userMessage)).copy(isLlmOffline = true)
         }
+    }
+
+    private fun mergeIntents(current: UserIntent, last: UserIntent?): UserIntent {
+        if (last == null) return current
+        return current.copy(
+            dietaryPreference = current.dietaryPreference ?: last.dietaryPreference,
+            budget = current.budget ?: last.budget,
+            spiceLevel = current.spiceLevel ?: last.spiceLevel
+        )
     }
 
     private fun rankCandidates(intent: UserIntent, candidates: List<Restaurant>): List<Restaurant> {
@@ -112,6 +131,11 @@ class ResponseOrchestrator(
             
             // 5. Dietary Alignment (10 pts)
             if (intent.dietaryPreference == "veg" && restaurant.isVeg) score += 10
+            
+            // 6. Statefulness Boost (Extra): Prioritize consistency for refinements
+            if (lastIntent?.specificCravings?.any { c -> restaurant.cuisine.contains(c) } == true) {
+                score += 5
+            }
             
             score
         }.take(10) // Only pass top 10 to LLM to stay within context limits
@@ -243,23 +267,29 @@ class ResponseOrchestrator(
     }
 
     fun generateWhyMatch(restaurant: Restaurant, intent: UserIntent): String {
-        val reasons = mutableListOf<String>()
-        if (restaurant.rating >= 4.5)
-            reasons.add("One of the highest rated in this category")
-        if (restaurant.deliveryTimeMinutes <= 25)
-            reasons.add("Delivers in under 25 minutes")
-        if (intent.budget != null &&
-            restaurant.costForTwo <= intent.budget * 2)
-            reasons.add("Within your \u20b9${intent.budget} budget")
-        if (restaurant.isVeg && intent.dietaryPreference == "veg")
-            reasons.add("Pure veg kitchen")
-        if (restaurant.tags.any { it.contains("spicy", ignoreCase = true) }
-            && intent.spiceLevel == "spicy")
-            reasons.add("Known for spicy dishes")
+        val features = mutableListOf<String>()
+        
+        // Match Analysis for Decision Quality
+        if (intent.dietaryPreference == "veg" && restaurant.isVeg) features.add("100% Veg")
+        if (restaurant.rating >= 4.5) features.add("Elite Rated")
+        if (restaurant.deliveryTimeMinutes <= 25) features.add("Hyper-local Delivery")
+        
+        val cravingMatch = intent.specificCravings.any { craving -> 
+            restaurant.cuisine.any { it.contains(craving, ignoreCase = true) } 
+        }
+        if (cravingMatch) features.add("Exact Craving Match")
+        
+        if (intent.budget != null && restaurant.costForTwo <= intent.budget * 2) {
+            features.add("Budget Optimized")
+        }
 
-        return if (reasons.isEmpty())
-            "Highly rated with fast delivery"
-        else reasons.take(2).joinToString(" · ")
+        val primaryReason = if (features.isNotEmpty()) {
+            features.take(3).joinToString(" + ") + " → Ranked Top Pick"
+        } else {
+            "High Affinity Score based on Mind Engine analysis"
+        }
+
+        return primaryReason
     }
 
     private fun buildRelaxedFallback(allRestaurants: List<Restaurant>, intent: UserIntent): OrchestratedResponse {
