@@ -36,7 +36,12 @@ class MockRestaurantRepository(
                 val dineoutBytes = Res.readBytes("files/mock_dineout.json")
                 mockDineoutVenues = AiJsonParser.json.decodeFromString<List<Restaurant>>(dineoutBytes.decodeToString())
             } catch (e: Exception) {
-                e.printStackTrace()
+                // Last Resort: Hardcoded data if file reading fails
+                mockRestaurants = listOf(
+                    Restaurant("r001", "Honest Restaurant", listOf("Gujarati", "Thali"), 4.3, 35, 300, AppConstants.FALLBACK_IMAGE_URL, location = "Ahmedabad"),
+                    Restaurant("r005", "Sankalp", listOf("South Indian"), 4.2, 25, 400, AppConstants.FALLBACK_IMAGE_URL, location = "Ahmedabad"),
+                    Restaurant("m001", "Swati Snacks", listOf("Street Food"), 4.6, 30, 400, AppConstants.FALLBACK_IMAGE_URL, location = "Mumbai")
+                )
             }
         }
     }

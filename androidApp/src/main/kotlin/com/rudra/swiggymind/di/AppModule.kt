@@ -60,6 +60,7 @@ object AppModule {
     fun provideRestaurantRepository(settingsRepository: SettingsRepository): RestaurantRepository {
         return if (BuildConfig.USE_MCP_BACKEND) {
             McpRestaurantRepository(
+                settingsRepository = settingsRepository,
                 accessToken = BuildConfig.MCP_ACCESS_TOKEN,
                 useStaging = BuildConfig.MCP_USE_STAGING
             )

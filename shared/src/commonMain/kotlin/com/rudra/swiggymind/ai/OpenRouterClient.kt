@@ -143,24 +143,27 @@ class OpenRouterClient(
         }
 
         val systemPrompt = """
-            You are SwiggyMind — the expert food curator at Swiggy. 
-            You know every restaurant, every dish, and exactly what the user is looking for.
-            Pick the top 3 best candidates and explain in 1 warm, helpful sentence why they match.
-            Be conversational and specific. Avoid saying 'As an AI' or 'I recommend'. 
-            Just be the helpful friend who knows the best food spots.
-            Return ONLY valid JSON:
+            You are the SwiggyMind Cognitive Engine. 
+            Task: Reasoning-based food recommendation.
+            
+            Multi-step Reasoning (CoT):
+            1. Analyze user intent: Cravings, budget, mood.
+            2. Evaluate candidates against intent and logistics (rating/time).
+            3. Synthesize selection with clear user-centric reasoning.
+
+            Constraint: Return ONLY valid JSON. No markdown.
+            
+            Schema:
             {
               "picks": [
-                {
-                  "restaurantId": "string",
-                  "reason": "string"
-                }
+                { "restaurantId": "string", "reason": "string", "matchScore": number (0-100) }
               ],
-              "summary": "string (one line overall response to user)"
+              "summary": "one-line friendly conclusion",
+              "cognitiveReasoning": "Briefly explain your internal logic for these picks"
             }
         """.trimIndent()
 
-        val userPrompt = "User intent: $intent\nCandidates:\n$restaurantsList"
+        val userPrompt = "Intent: $intent\nCandidates:\n$restaurantsList"
 
         return try {
             val response = client.post("${AppConstants.OPENROUTER_BASE_URL}/chat/completions") {
@@ -173,13 +176,20 @@ class OpenRouterClient(
                 setBody(
                     kotlinx.serialization.json.buildJsonObject {
                         put("model", kotlinx.serialization.json.JsonPrimitive(model))
-                        put("max_tokens", kotlinx.serialization.json.JsonPrimitive(AppConstants.MAX_TOKENS))
-                        put("temperature", kotlinx.serialization.json.JsonPrimitive(0.7))
+                        put("max_tokens", kotlinx.serialization.json.JsonPrimitive(1000))
+                        put("temperature", kotlinx.serialization.json.JsonPrimitive(0.3)) // Lower temperature for more consistent reasoning
                         put("messages", kotlinx.serialization.json.buildJsonArray {
                             add(kotlinx.serialization.json.buildJsonObject {
                                 put("role", kotlinx.serialization.json.JsonPrimitive("system"))
                                 put("content", kotlinx.serialization.json.JsonPrimitive(systemPrompt))
                             })
+                            // Inject Conversation Context
+                            conversationContext.forEach { msg ->
+                                add(kotlinx.serialization.json.buildJsonObject {
+                                    put("role", kotlinx.serialization.json.JsonPrimitive(msg.role))
+                                    put("content", kotlinx.serialization.json.JsonPrimitive(msg.content))
+                                })
+                            }
                             add(kotlinx.serialization.json.buildJsonObject {
                                 put("role", kotlinx.serialization.json.JsonPrimitive("user"))
                                 put("content", kotlinx.serialization.json.JsonPrimitive(userPrompt))
@@ -198,7 +208,10 @@ class OpenRouterClient(
             if (parsedResponse.error != null) {
                 return null
             }
-            parsedResponse.choices.firstOrNull()?.message?.content
+            val content = parsedResponse.choices.firstOrNull()?.message?.content
+            
+            // Self-Correction: Handle potential markdown backticks
+            content?.replace("```json", "")?.replace("```", "")?.trim()
         } catch (e: Exception) {
             null
         }

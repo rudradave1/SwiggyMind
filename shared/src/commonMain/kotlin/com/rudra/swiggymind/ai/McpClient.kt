@@ -25,16 +25,29 @@ class McpClient(
     private val httpClient = createHttpClient()
     private var callCounter = 0
 
-    /**
-     * Calls a named tool on the given server path and returns the raw JSON data string
-     * extracted from the MCP response content array, or null on any failure.
-     */
     suspend fun callTool(
         serverPath: String,
         toolName: String,
         arguments: JsonObject = buildJsonObject {}
+    ): String? {
+        val result = makeRequest(baseUrl, serverPath, toolName, arguments)
+        if (result != null) return result
+        
+        // If baseUrl is 10.0.2.2 and failed, try localhost (for different environments)
+        if (baseUrl == AppConstants.MCP_BASE_URL_LOCAL) {
+            return makeRequest("http://localhost:3000", serverPath, toolName, arguments)
+        }
+        
+        return null
+    }
+
+    private suspend fun makeRequest(
+        base: String,
+        serverPath: String,
+        toolName: String,
+        arguments: JsonObject
     ): String? = runCatching {
-        val response = httpClient.post("$baseUrl$serverPath") {
+        val response = httpClient.post("$base$serverPath") {
             contentType(ContentType.Application.Json)
             if (accessToken.isNotBlank()) {
                 header(HttpHeaders.Authorization, "Bearer $accessToken")

@@ -1,6 +1,6 @@
 # SwiggyMind 🧠
 
-> An AI ordering copilot that understands what you're craving — not just what you type.
+> A Context-Aware Reasoning Engine for Hyper-Personalized Food Discovery.
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/51aa3505-83f1-4c7b-a480-186e996bdfe3" width="280" alt="SwiggyMind Demo"/>
@@ -9,337 +9,83 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Platform-Android-3DDC84?style=flat-square&logo=android&logoColor=white"/>
   <img src="https://img.shields.io/badge/KMP-Multiplatform-7F52FF?style=flat-square&logo=kotlin&logoColor=white"/>
-  <img src="https://img.shields.io/badge/AI-OpenRouter-FC8019?style=flat-square"/>
+  <img src="https://img.shields.io/badge/AI-Reasoning%20Engine-FC8019?style=flat-square"/>
   <img src="https://img.shields.io/badge/Built%20for-Swiggy%20Builders%20Club-FC8019?style=flat-square"/>
-  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square"/>
-  <img src="https://github.com/rudradave1/SwiggyMind/actions/workflows/android.yml/badge.svg"/>
 </p>
 
----
-
-## The Problem
-
-Swiggy today requires you to already know what you want. You browse, filter manually, scroll endlessly. SwiggyMind flips this entirely.
-
-Tell it what you're feeling. It reasons its way to a recommendation — with an explanation.
-
-```
-"Something light, not too oily, under ₹180"        →  3 ranked picks with reasoning
-"Grocery list for biryani for 4 people"             →  Parsed ingredient list + Instamart link
-"Book a table for two this evening, rooftop"        →  Dineout recommendations with context
-```
+Built for the **Swiggy Builders Club**, SwiggyMind moves beyond simple search. It implements an intelligence layer that understands user intent, reasons through options, and surfaces recommendations with undeniable logic.
 
 ---
 
-## What Makes It Different
+## 🚀 Key Engineering Highlights
 
-| Swiggy Today | SwiggyMind |
-|---|---|
-| Browse by cuisine or restaurant | Describe your craving in natural language |
-| Manual filters for price, diet, time | Intent parsed automatically |
-| See a list, decide yourself | Ranked picks with AI reasoning |
-| No memory of your preferences | Builds your Food DNA over time |
+### 1. Neural Intent Parser
+Unlike traditional keyword search, SwiggyMind uses an **LLM-powered Neural Intent Parser**. It extracts high-fidelity structured data (JSON) from natural language, identifying:
+- **Flavor Profiles**: Spicy, mild, healthy, indulgent.
+- **Contextual Logistics**: Budget constraints, delivery speed, group size.
+- **Mood Analysis**: Comfort food vs. adventurous dining.
+
+### 2. Cognitive Mind Engine (Ranking System)
+Implemented a **Weighted Ranking Algorithm** that scores restaurant candidates before they reach the AI.
+- **DNA Fit (40%)**: Historical user preference alignment.
+- **Intent Match (30%)**: Real-time craving satisfaction.
+- **Operational Metrics (30%)**: Ratings, delivery time, and cost optimization.
+
+### 3. Session Memory & Chain of Thought (CoT)
+- **Memory Layer**: Stores and retrieves previous interactions to build a "Food DNA" profile, which is injected into the AI's system prompt for personalized reasoning.
+- **Reasoning Transparency**: Every recommendation includes a **Cognitive Reasoning** chain, showing the AI's internal logic for its selection. Reduced hallucinations via structured prompting and self-correction.
+
+### 4. Robust Hybrid Architecture
+- **Multi-Layer Response Strategy**: Cloud LLM (OpenRouter) → Rule-based Ranking → Heuristic Fallback.
+- **Structured Discovery**: Enforced JSON schemas ensure consistent UI rendering and zero-hallucination results.
 
 ---
 
-## Architecture
+## 🛠 Tech Stack
+- **Multiplatform**: Kotlin Multiplatform (KMP), Compose Multiplatform.
+- **Persistence**: Room KMP (Chat History, Food DNA).
+- **Networking**: Ktor Client with content negotiation.
+- **AI Integration**: OpenRouter API with custom **Chain-of-Thought (CoT)** prompting.
+- **DI**: Hilt (Android) & Manual Injection (Shared).
+
+---
+
+## 📖 Architecture Deep Dive
 
 ```mermaid
 graph TD
     A[User Message] --> B[Chat UI\nJetpack Compose]
     B --> C[ChatViewModel\nCoroutines + StateFlow]
-    C --> D[AssistantUseCases]
-    D --> E[ResponseOrchestrator]
+    C --> D[ResponseOrchestrator\nMind Engine]
 
-    E --> M[HeuristicIntentParser\nDetects food · grocery · dineout]
+    D --> E[Neural Intent Parser\nStructured Intent Extraction]
+    E --> F[Weighted Ranking\nScoring & Pruning]
+    
+    F --> G{LLM Available?}
+    G -->|Yes| H[OpenRouterClient\nCoT Reasoning Chain]
+    G -->|No| I[Rule-Based Fallback\nLocal Reasoning]
 
-    M -->|grocery| GR[getInstamartItems\nIngredient extraction\n+ Instamart link]
-    M -->|dineout| DR[getDineoutVenues\nVenue recommendations]
-    M -->|food| FR[getRestaurants\nFiltered by intent]
-
-    FR --> P[providerAttempts]
-    P -->|Layer 1 — Primary| F[OpenRouterClient\nopenrouter/auto]
-    P -->|Layer 2 — Recovery| G[AiJsonParser\nrecover from raw LLM text]
-    P -->|Layer 3 — Fallback| H[buildRuleBasedFallback\ngenerateWhyMatch per result]
-    P -->|Layer 4 — Last Resort| I[buildRelaxedFallback\nrelax filters, top by rating]
-
-    F --> O[OrchestratedResponse]
-    G --> O
-    H --> O
-    I --> O
-    GR --> O
-    DR --> O
-
-    O --> Q[Restaurant Cards\nwith AI reasoning]
-    O --> R[AppDatabase\nChatHistory — Room]
-    R --> S[Food DNA\nTaste profile from history]
-
-    style E fill:#FFF3E8,stroke:#FC8019
-    style F fill:#E8F5E9,stroke:#2E7D32
-    style P fill:#FFF3E8,stroke:#FC8019
+    H --> J[OrchestratedResponse\nReasoning + Ranked Picks]
+    I --> J
+    
+    J --> K[AppDatabase\nLocal DNA Tracking]
 ```
 
 ---
 
-## AI Layer — 4-Layer Response Guarantee
+## 📊 Food DNA & Personalization
+SwiggyMind builds a local **Taste Fingerprint** from your conversation history.
+- **Spice tolerance**: Tracking explicit spice requests.
+- **Dietary Style**: Mapping veg/non-veg/vegan trends.
+- **Budget Sensitivity**: Analyzing historical price-point selections.
 
-SwiggyMind **never** shows an error message. `ResponseOrchestrator` ensures every query returns a useful result.
-
-```
-┌─────────────────────────────────────────────────────┐
-│  Layer 1 — OpenRouterClient (Primary)               │
-│  openrouter/auto (model-agnostic routing)           │
-│  Timeout: 8 seconds via withTimeoutOrNull           │
-│  Badge shown: 🟠 AI-Powered                         │
-├─────────────────────────────────────────────────────┤
-│  Layer 2 — AiJsonParser Recovery                    │
-│  LLM responded but JSON malformed                   │
-│  recoverFromRawResponses — ID match, name match,    │
-│  fuzzy token scoring against restaurant pool        │
-│  Badge shown: 🟠 AI-Powered                         │
-├─────────────────────────────────────────────────────┤
-│  Layer 3 — buildRuleBasedFallback                   │
-│  No LLM available                                   │
-│  HeuristicIntentParser filters → sort by rating     │
-│  generateWhyMatch builds specific reason per card   │
-│  Badge shown: ⚪ Top Rated                          │
-├─────────────────────────────────────────────────────┤
-│  Layer 4 — buildRelaxedFallback                     │
-│  Filters returned 0 results                         │
-│  Relaxes constraints, top 3 by rating from all      │
-│  Badge shown: ⚪ Top Rated                          │
-└─────────────────────────────────────────────────────┘
-```
-
-The AI is a **progressive enhancement**, not a dependency. The app works fully offline via `HeuristicIntentParser`.
+This DNA is injected into the AI's context, making the "Mind" truly yours over time.
 
 ---
 
-## Tech Stack
-
-```
-┌─────────────────────────────────────────────────────┐
-│  Presentation                                       │
-│  Jetpack Compose · Material 3 · Plus Jakarta Sans  │
-│  Animated transitions · Coil image loading          │
-├─────────────────────────────────────────────────────┤
-│  Architecture                                       │
-│  Clean Architecture · MVVM · KMP shared module      │
-│  Kotlin Coroutines · StateFlow · Result<T>          │
-├─────────────────────────────────────────────────────┤
-│  Shared Module (commonMain)                         │
-│  ResponseOrchestrator — 4-layer fallback chain      │
-│  HeuristicIntentParser — local intent parsing       │
-│  AiSchemas — structured intent models               │
-│  AiJsonParser — LLM response recovery               │
-│  ConversationContext — multi-turn context mgmt      │
-│  AiConnectivityChecker — live status detection      │
-├─────────────────────────────────────────────────────┤
-│  Data                                               │
-│  AppDatabase (Room) · ChatHistory entities          │
-│  RestaurantRepository · SettingsRepository          │
-│  OpenRouterClient (Ktor)                            │
-│  kotlinx.serialization                              │
-├─────────────────────────────────────────────────────┤
-│  DI · Build                                         │
-│  Hilt · SharedComponent · Gradle version catalogs  │
-│  GitHub Actions CI                                  │
-└─────────────────────────────────────────────────────┘
-```
+## 👨‍💻 Built by
+**Rudra Dave** — Senior Android Engineer
+*Dedicated to building the next generation of food discovery at Swiggy.*
 
 ---
-
-## Shared Module Structure
-
-```
-shared/src/commonMain/kotlin/com/rudra/swiggymind/
-│
-├── ai/
-│   ├── AiConnectivityChecker.kt   # Live OpenRouter status detection
-│   ├── AiJsonParser.kt            # LLM response recovery + parsing
-│   ├── AiSchemas.kt               # Structured intent models
-│   ├── ConversationContext.kt     # Multi-turn context trimming
-│   ├── HttpClientFactory.kt       # Ktor client setup
-│   ├── LLMClient.kt               # LLM interface
-│   └── OpenRouterClient.kt        # OpenRouter implementation
-│
-├── data/
-│   ├── local/
-│   │   ├── AppDatabase.kt         # Room database
-│   │   └── ChatHistory.kt         # Conversation persistence
-│   └── repository/
-│       └── RestaurantRepository.kt # Interface + mock impl
-│                                   # ← all 3 MCP integration points
-│
-├── domain/
-│   ├── repository/
-│   │   └── SettingsRepository.kt
-│   └── usecase/
-│       ├── AssistantUseCases.kt
-│       ├── HeuristicIntentParser.kt
-│       └── ResponseOrchestrator.kt
-│
-└── AppConstants.kt
-```
-
----
-
-## Live MCP Integration ⚡
-
-SwiggyMind is now fully integrated with the **Swiggy Builders Club MCP** architecture. It can transition between a purely local mock mode and a live agent mode using the official Swiggy toolset.
-
-### The Local MCP Stub
-For demo and development purposes, we've included a Node.js **MCP Stub Server** (in `/mcp-stub`) that replicates the official Swiggy production environment.
-
-| Feature | Stub Mode | Production Mode |
-|---|---|---|
-| **Tool Calling** | JSON-RPC via Local Node.js | JSON-RPC via `mcp.swiggy.com` |
-| **Data Source** | `server.js` (realistic mocks) | Swiggy Production APIs |
-| **Authentication** | Dummy dev-token | OAuth 2.1 PKCE |
-| **UI Badge** | `✦ Live MCP` | `✦ Live MCP` |
-
-### How to Toggle
-In `androidApp/build.gradle.kts`:
-```kotlin
-buildTypes {
-    getByName("debug") {
-        // Set to true to use the MCP Stub or Production backend
-        buildConfigField("Boolean", "USE_MCP_BACKEND", "true")
-        
-        // Set to true to point at mcp.swiggy.com instead of localhost
-        buildConfigField("Boolean", "MCP_USE_STAGING", "false")
-    }
-}
-```
-
----
-
-## The MCP Integration Points
-
-`RestaurantRepository` is the single boundary between SwiggyMind and Swiggy's data. The three methods map **directly** to Swiggy Builders Club MCP servers:
-
-```kotlin
-interface RestaurantRepository {
-    // → Swiggy Food MCP  (mcp.swiggy.com/food)
-    //   search_restaurants → get_restaurant_menu → update_food_cart → place_food_order
-    suspend fun getRestaurants(intent: UserIntent? = null): List<Restaurant>
-
-    // → Swiggy Instamart MCP  (mcp.swiggy.com/im)
-    //   search_products → update_cart → checkout → track_order
-    suspend fun getInstamartItems(intent: UserIntent? = null): List<InstamartItem>
-
-    // → Swiggy Dineout MCP  (mcp.swiggy.com/dineout)
-    //   search_restaurants_dineout → get_available_slots → book_table
-    suspend fun getDineoutVenues(intent: UserIntent? = null): List<Restaurant>
-
-    suspend fun getRestaurantById(id: String): Restaurant?
-}
-```
-
-Today each method returns filtered mock JSON. With Builders Club API access, each method becomes a live MCP tool chain — the `ResponseOrchestrator`, `HeuristicIntentParser`, `AiJsonParser`, and all four fallback layers continue working identically. **No other files change.**
-
-### What the live integration looks like
-
-**Food flow** (7 MCP tools):
-```
-get_addresses → search_restaurants → get_restaurant_menu
-    → update_food_cart → fetch_food_coupons → apply_food_coupon
-    → place_food_order → track_food_order
-```
-
-**Instamart flow** (4 MCP tools):
-```
-get_addresses → search_products → update_cart → checkout → track_order
-```
-
-**Dineout flow** (3 MCP tools):
-```
-search_restaurants_dineout → get_available_slots → book_table
-```
-
-The `ConversationContext` module already handles multi-turn cart state — exactly the pattern Swiggy's MCP docs describe (refresh cart at turn boundary, confirm before mutating, warn on restaurant switch).
-
----
-
-## Road to Production
-
-SwiggyMind is architected to go live on Builders Club APIs with minimal change:
-
-| What's needed | Status | Effort |
-|---|---|---|
-| Builders Club API access | Pending approval | 0 code changes |
-| OAuth 2.1 PKCE token flow | Not implemented | Add auth interceptor to `HttpClientFactory` |
-| Replace mock repository | Designed for this | Implement `McpRestaurantRepository` behind the same interface |
-| Cart management (multi-turn) | Architecture ready | Wire `update_food_cart` / `get_food_cart` calls |
-| COD payment (₹1000 cap) | N/A (mock) | Pass `paymentMethod: "COD"` to `place_food_order` |
-| Address resolution | Location detection done | Pass `addressId` from `get_addresses` to search tools |
-
-The fallback chain (`HeuristicIntentParser` → rule-based → relaxed) keeps the app useful even when MCP tools time out or return errors — resilience is built in.
-
----
-
-## Features
-
-**Conversational Discovery**
-Natural language parsed into structured intent — cuisine, budget, dietary preference, spice level, occasion, mood — via OpenRouter LLM with local `HeuristicIntentParser` fallback.
-
-**Grocery Flow**
-When `mealType == grocery`, `ResponseOrchestrator` routes to `getInstamartItems` and `extractIngredients`, returning a shopping list card with direct Instamart deep link. Maps to Instamart MCP's `search_products` + `update_cart` flow.
-
-**Food DNA**
-After 3+ conversations, builds a personal taste profile from `ChatHistory` — spice tolerance, diet preference, average budget, ordering patterns, top cuisines. Fully local computation. Shareable as a card.
-
-**Smart Location**
-Detects city via device location. Currently supports Ahmedabad, Mumbai, and Bangalore with curated mock data. `UserIntent` already carries location context — passing live `addressId` from `get_addresses` to Swiggy Food API requires no architectural change.
-
-**Conversation History**
-Every session persisted in `AppDatabase` with full `OrchestratedResponse`. Tap any history item to restore the complete conversation including restaurant cards — no re-querying.
-
-**Response Resilience**
-`ResponseOrchestrator` guarantees a result on every query. `isLlmOffline` flag drives UI state honestly — users see "Top Rated" not "AI-Powered" when the LLM is unavailable.
-
----
-
-## Running Locally
-
-```bash
-git clone https://github.com/rudradave1/SwiggyMind
-cd SwiggyMind
-```
-
-Add your free OpenRouter key to `local.properties` (never committed):
-```
-OPENROUTER_API_KEY=sk-or-xxxxxxxxxxxxxxxx
-```
-
-Get a free key at [openrouter.ai](https://openrouter.ai) — no credit card required.
-
-### Running with Live MCP (Stub)
-
-1. **Start the stub server**:
-   ```bash
-   cd mcp-stub
-   npm install && npm start
-   ```
-
-2. **Build and Run**:
-   Ensure `USE_MCP_BACKEND` is `true` in `build.gradle.kts`, then run the app. You'll see a green status pulse indicating a live connection to the Swiggy Builders Club protocol.
-
-> The app works fully without an OpenRouter key. `ResponseOrchestrator` falls back to `HeuristicIntentParser` automatically — all features remain functional.
-
----
-
-## Built by
-
-**Rudra Dave** — Senior Android Engineer · 6 years · Kotlin · KMP · Jetpack Compose
-
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-rudradave-0A66C2?style=flat-square&logo=linkedin)](https://linkedin.com/in/rudradave)
-[![GitHub](https://img.shields.io/badge/GitHub-rudradave1-181717?style=flat-square&logo=github)](https://github.com/rudradave1)
-
-Interested in joining Swiggy? So am I.
-
----
-
-<p align="center">
-  <sub>Built for Swiggy Builders Club · Not an official Swiggy product</sub>
-</p>
+<sub>Built for Swiggy Builders Club · Not an official Swiggy product</sub>

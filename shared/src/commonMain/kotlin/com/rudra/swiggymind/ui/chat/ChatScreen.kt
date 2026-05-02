@@ -410,13 +410,13 @@ fun ChatBubble(
     val isLive = !message.isAiFallback && !message.isRelaxed
 
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
         horizontalAlignment = if (message.isFromUser) Alignment.End else Alignment.Start
     ) {
         if (isAi) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 6.dp)
+                modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
             ) {
                 Icon(
                     Icons.Default.AutoAwesome,
@@ -470,18 +470,54 @@ fun ChatBubble(
             color = if (message.isFromUser) SwiggyColors.Primary else Color.White,
             border = if (!message.isFromUser)
                 BorderStroke(1.dp, Color(0xFFE0E0E0)) else null,
-            shadowElevation = 0.dp
+            shadowElevation = 0.dp,
+            modifier = Modifier.widthIn(max = 300.dp)
         ) {
-            Text(
-                text = message.text,
-                color = if (message.isFromUser) SwiggyColors.OnPrimary else SwiggyColors.OnBackground,
-                fontSize = 15.sp,
-                lineHeight = 22.sp,
-                modifier = Modifier.padding(
-                    horizontal = 12.dp, 
-                    vertical = 10.dp
+            Column(modifier = Modifier.padding(vertical = 10.dp)) {
+                Text(
+                    text = message.text,
+                    color = if (message.isFromUser) SwiggyColors.OnPrimary else SwiggyColors.OnBackground,
+                    fontSize = 15.sp,
+                    lineHeight = 22.sp,
+                    modifier = Modifier.padding(horizontal = 12.dp)
                 )
-            )
+
+                if (!message.isFromUser && message.reasoningChain != null) {
+                    var showReasoning by remember { mutableStateOf(false) }
+                    
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 12.dp).padding(top = 8.dp), 
+                        thickness = 0.5.dp, 
+                        color = SwiggyColors.Border
+                    )
+                    
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showReasoning = !showReasoning }
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Psychology, contentDescription = null, tint = SwiggyColors.Primary, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Cognitive Reasoning", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = SwiggyColors.Primary)
+                            Spacer(modifier = Modifier.weight(1f))
+                            Icon(if (showReasoning) Icons.Default.ExpandLess else Icons.Default.ExpandMore, contentDescription = null, modifier = Modifier.size(14.dp), tint = SwiggyColors.Subtle)
+                        }
+                        
+                        androidx.compose.animation.AnimatedVisibility(visible = showReasoning) {
+                            Text(
+                                text = message.reasoningChain,
+                                fontSize = 11.sp,
+                                color = SwiggyColors.Subtle,
+                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                                modifier = Modifier.padding(top = 4.dp),
+                                lineHeight = 16.sp
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         if (message.isGrocery) {
@@ -494,30 +530,21 @@ fun ChatBubble(
 
         if (message.recommendations.isNotEmpty() && !message.isGrocery) {
             Spacer(modifier = Modifier.height(12.dp))
-            var cardsVisible by remember { mutableStateOf(false) }
-            LaunchedEffect(Unit) { cardsVisible = true }
-
+            
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(start = 4.dp, end = 4.dp, bottom = 12.dp)
             ) {
                 items(message.recommendations.size) { index ->
                     val recommendation = message.recommendations[index]
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = cardsVisible,
-                        enter = slideInVertically(
-                            initialOffsetY = { it / 2 },
-                            animationSpec = tween(durationMillis = 400, delayMillis = index * 150)
-                        ) + fadeIn(animationSpec = tween(durationMillis = 400, delayMillis = index * 150))
-                    ) {
-                        RecommendationCard(
-                            restaurant = recommendation.restaurant,
-                            reasoning = recommendation.reason,
-                            isAiFallback = message.isAiFallback,
-                            isRelaxed = message.isRelaxed,
-                            isMcp = message.isMcp
-                        )
-                    }
+                    RecommendationCard(
+                        restaurant = recommendation.restaurant,
+                        reasoning = recommendation.reason,
+                        matchScore = recommendation.matchScore,
+                        isAiFallback = message.isAiFallback,
+                        isRelaxed = message.isRelaxed,
+                        isMcp = message.isMcp
+                    )
                 }
             }
 
@@ -598,6 +625,7 @@ fun GroceryListCard(ingredients: List<String>, isRecommended: Boolean = false) {
 fun RecommendationCard(
     restaurant: Restaurant,
     reasoning: String,
+    matchScore: Int = 0,
     isAiFallback: Boolean = false,
     isRelaxed: Boolean = false,
     isMcp: Boolean = false
@@ -615,12 +643,30 @@ fun RecommendationCard(
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column {
-                AsyncImage(
-                    model = restaurant.imageUrl,
-                    contentDescription = restaurant.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.height(140.dp).fillMaxWidth()
-                )
+                Box(modifier = Modifier.background(Color(0xFFF5F5F5))) {
+                    AsyncImage(
+                        model = restaurant.imageUrl,
+                        contentDescription = restaurant.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.height(140.dp).fillMaxWidth()
+                    )
+                    
+                    if (matchScore > 0) {
+                        Surface(
+                            modifier = Modifier.padding(8.dp).align(Alignment.TopStart),
+                            color = SwiggyColors.Primary,
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = "$matchScore% Match",
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
                 
                 Column(modifier = Modifier.padding(12.dp)) {
                     Row(

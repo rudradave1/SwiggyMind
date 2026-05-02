@@ -74,7 +74,7 @@ class ChatViewModel(
                             for (result in results) {
                                 val restaurant = restaurantRepository.getRestaurantById(result.restaurantId)
                                 if (restaurant != null) {
-                                    resolvedRecs.add(RestaurantRecommendation(restaurant, result.reason))
+                                    resolvedRecs.add(RestaurantRecommendation(restaurant, result.reason, result.matchScore))
                                 }
                             }
                             resolvedRecs
@@ -93,7 +93,9 @@ class ChatViewModel(
                             isAiFallback = entity.isAiFallback,
                             isRelaxed = entity.isRelaxed,
                             isGrocery = entity.isGrocery,
-                            ingredients = ingredients
+                            ingredients = ingredients,
+                            reasoningChain = entity.reasoningChain,
+                            isMcp = entity.isMcp
                         )
                     )
                 }
@@ -151,7 +153,8 @@ class ChatViewModel(
                     isRelaxed = response.isRelaxed,
                     isGrocery = response.isGrocery,
                     ingredients = response.ingredients,
-                    isMcp = response.isMcp
+                    isMcp = response.isMcp,
+                    reasoningChain = response.reasoningChain
                 )
 
                 val newAiStatus = when {
@@ -199,7 +202,7 @@ class ChatViewModel(
 
                 val recommendationJson = if (response.recommendations.isNotEmpty()) {
                     val results = response.recommendations.map {
-                        RecommendationResult(it.restaurant.id, it.reason)
+                        RecommendationResult(it.restaurant.id, it.reason, it.matchScore)
                     }
                     AiJsonParser.json.encodeToString(results)
                 } else null
@@ -218,7 +221,9 @@ class ChatViewModel(
                         isGrocery = response.isGrocery,
                         isAiFallback = response.isAiFallback,
                         isRelaxed = response.isRelaxed,
-                        timestamp = now
+                        isMcp = response.isMcp,
+                        timestamp = now,
+                        reasoningChain = response.reasoningChain
                     )
                 )
 
@@ -250,5 +255,6 @@ data class ChatMessage(
     val isRelaxed: Boolean = false,
     val isGrocery: Boolean = false,
     val ingredients: List<String> = emptyList(),
-    val isMcp: Boolean = false
+    val isMcp: Boolean = false,
+    val reasoningChain: String? = null
 )

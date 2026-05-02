@@ -58,33 +58,39 @@ data class UserIntent(
     val spiceLevel: String? = null, // "mild" | "medium" | "spicy"
     val excludes: List<String> = emptyList(),
     val partySize: Int? = null,
+    val reasoningChain: String? = null, // AI's internal thought process
     val rawQuery: String = ""
 )
 
 @Serializable
 data class RecommendationResponse(
     val picks: List<RecommendationResult>,
-    val summary: String
+    val summary: String,
+    val cognitiveReasoning: String? = null // Chain of Thought from AI
 )
 
 @Serializable
 data class RecommendationResult(
     val restaurantId: String,
-    val reason: String
+    val reason: String,
+    val matchScore: Int = 0 // 0-100 score of how well it matches DNA + Intent
 )
 
 data class RestaurantRecommendation(
     val restaurant: Restaurant,
-    val reason: String
+    val reason: String,
+    val matchScore: Int = 0
 )
 
 data class OrchestratedResponse(
     val summary: String,
     val recommendations: List<RestaurantRecommendation>,
+    val reasoningChain: String? = null,
     val isAiFallback: Boolean = false,
     val isRelaxed: Boolean = false,
     val ingredients: List<String> = emptyList(),
     val isGrocery: Boolean = false,
     val isLlmOffline: Boolean = false,
-    val isMcp: Boolean = false
+    val isMcp: Boolean = false,
+    val aiStatus: String = "CLOUD" // "CLOUD", "MCP", "FALLBACK"
 )

@@ -6,6 +6,7 @@ import com.rudra.swiggymind.ai.McpClient
 import com.rudra.swiggymind.domain.model.InstamartItem
 import com.rudra.swiggymind.domain.model.Restaurant
 import com.rudra.swiggymind.domain.model.UserIntent
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -21,6 +22,7 @@ import kotlinx.serialization.json.put
  * and all fallback layers are completely unaware of which implementation is active.
  */
 class McpRestaurantRepository(
+    private val settingsRepository: com.rudra.swiggymind.domain.repository.SettingsRepository,
     accessToken: String,
     useStaging: Boolean = false
 ) : RestaurantRepository {
@@ -29,6 +31,7 @@ class McpRestaurantRepository(
                           else AppConstants.MCP_BASE_URL_LOCAL
 
     private val client = McpClient(accessToken = accessToken, baseUrl = baseUrl)
+    private val mockFallback = MockRestaurantRepository(settingsRepository)
 
     /** In-memory cache keyed by restaurant ID for getRestaurantById look-ups. */
     private val restaurantCache = mutableMapOf<String, Restaurant>()
@@ -39,45 +42,64 @@ class McpRestaurantRepository(
     // ── RestaurantRepository ──────────────────────────────────────────────────
 
     override suspend fun getRestaurants(intent: UserIntent?): List<Restaurant> {
-        val addressId = resolveAddressId()
+        val addressId = try { 
+            withTimeoutOrNull(2000) { resolveAddressId() } ?: AppConstants.MCP_FALLBACK_ADDRESS_ID 
+        } catch (e: Exception) { AppConstants.MCP_FALLBACK_ADDRESS_ID }
+        
         val query = intent?.buildSearchQuery() ?: ""
 
-        val raw = client.callTool(
-            serverPath = "/food",
-            toolName = "search_restaurants",
-            arguments = buildJsonObject {
-                put("addressId", addressId)
-                put("query", query)
+        val raw = try {
+            withTimeoutOrNull(AppConstants.OPENROUTER_TIMEOUT_MS) {
+                client.callTool(
+                    serverPath = "/food",
+                    toolName = "search_restaurants",
+                    arguments = buildJsonObject {
+                        put("addressId", addressId)
+                        put("query", query)
+                    }
+                )
             }
-        ) ?: return emptyList()
+        } catch (e: Exception) {
+            null
+        }
 
-        val response = AiJsonParser.decodeOrNull<SwiggyFoodSearchResponse>(raw) ?: return emptyList()
-        return response.data.restaurants
-            .filter { it.availabilityStatus == "OPEN" }
-            .map { it.toDomain() }
-            .also { it.forEach { r -> restaurantCache[r.id] = r } }
+        val response = raw?.let { AiJsonParser.decodeOrNull<SwiggyFoodSearchResponse>(it) }
+        val results = response?.data?.restaurants
+            ?.filter { it.availabilityStatus == "OPEN" }
+            ?.map { it.toDomain() }
+            ?: emptyList()
+            
+        // Safety Net: Fallback to Mock Data if Live MCP returns nothing
+        return results.ifEmpty { 
+            mockFallback.getRestaurants(intent) 
+        }.also { it.forEach { r -> restaurantCache[r.id] = r } }
     }
 
     override suspend fun getRestaurantById(id: String): Restaurant? {
-        // Served from cache populated by prior getRestaurants / getDineoutVenues calls.
-        return restaurantCache[id]
+        return restaurantCache[id] ?: mockFallback.getRestaurantById(id)
     }
 
     override suspend fun getInstamartItems(intent: UserIntent?): List<InstamartItem> {
         val addressId = resolveAddressId()
         val query = intent?.buildSearchQuery() ?: "grocery"
 
-        val raw = client.callTool(
-            serverPath = "/im",
-            toolName = "search_products",
-            arguments = buildJsonObject {
-                put("addressId", addressId)
-                put("query", query)
-            }
-        ) ?: return emptyList()
+        val raw = try {
+            client.callTool(
+                serverPath = "/im",
+                toolName = "search_products",
+                arguments = buildJsonObject {
+                    put("addressId", addressId)
+                    put("query", query)
+                }
+            )
+        } catch (e: Exception) {
+            null
+        }
 
-        val response = AiJsonParser.decodeOrNull<SwiggyInstamartSearchResponse>(raw) ?: return emptyList()
-        return response.data.products.map { it.toDomain() }
+        val response = raw?.let { AiJsonParser.decodeOrNull<SwiggyInstamartSearchResponse>(it) }
+        val results = response?.data?.products?.map { it.toDomain() } ?: emptyList()
+        
+        return results.ifEmpty { mockFallback.getInstamartItems(intent) }
     }
 
     override suspend fun getDineoutVenues(intent: UserIntent?): List<Restaurant> {

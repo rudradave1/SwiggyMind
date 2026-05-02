@@ -33,7 +33,9 @@ data class ChatMessageEntity(
     val isGrocery: Boolean = false,
     val isAiFallback: Boolean = false,
     val isRelaxed: Boolean = false,
-    val timestamp: Long
+    val isMcp: Boolean = false,
+    val timestamp: Long,
+    val reasoningChain: String? = null
 )
 
 @Dao

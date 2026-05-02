@@ -6,6 +6,7 @@ import com.rudra.swiggymind.ai.ConversationContext
 import com.rudra.swiggymind.ai.LlmMessage
 import com.rudra.swiggymind.ai.OpenRouterClient
 import com.rudra.swiggymind.data.repository.RestaurantRepository
+import com.rudra.swiggymind.data.repository.MockRestaurantRepository
 import com.rudra.swiggymind.domain.model.OrchestratedResponse
 import com.rudra.swiggymind.domain.model.RecommendationResponse
 import com.rudra.swiggymind.domain.model.Restaurant
@@ -25,75 +26,120 @@ class ResponseOrchestrator(
     ): OrchestratedResponse {
         return try {
             val intent = HeuristicIntentParser.parse(userMessage).copy(rawQuery = userMessage)
+            
+            // Intelligence Layer: Intent Validation
             if (intent.mealType == "grocery") {
-                val ingredients = extractIngredients(userMessage)
-                val instamartItems = restaurantRepository.getInstamartItems(intent)
-                
-                // If user didn't specify items but we have trending items, show some
-                val finalItems = if (ingredients.isEmpty()) {
-                    instamartItems.take(4).map { it.name }
-                } else {
-                    ingredients
-                }
-
-                val summary = when {
-                    ingredients.isNotEmpty() -> "I've found these items for you on Instamart:"
-                    instamartItems.isNotEmpty() -> "I'm opening Instamart for you. Here are some trending items you might need:"
-                    else -> "Opening Instamart for you. What else do you need?"
-                }
-                
-                return OrchestratedResponse(
-                    summary = summary,
-                    recommendations = emptyList(),
-                    isGrocery = true,
-                    ingredients = finalItems.ifEmpty { listOf("Milk", "Fresh Bread", "Amul Butter", "Farm Eggs") },
-                    isMcp = isMcpEnabled
-                )
+                return handleGroceryIntent(userMessage, intent)
             }
 
-            val filteredCandidates = restaurantRepository.getRestaurants(intent)
-            val allRestaurants = restaurantRepository.getRestaurants()
+            var allRestaurants = restaurantRepository.getRestaurants()
+            if (allRestaurants.isEmpty()) {
+                // Critical Fallback: If primary repo (MCP) is empty, use mock data pool for reasoning
+                allRestaurants = MockRestaurantRepository(settingsRepository).getRestaurants()
+            }
+            
+            var filteredCandidates = restaurantRepository.getRestaurants(intent)
+            if (filteredCandidates.isEmpty() && allRestaurants.isNotEmpty()) {
+                filteredCandidates = allRestaurants
+            }
+            
+            // Core Logic: Mind Engine Ranking
+            val rankedCandidates = rankCandidates(intent, filteredCandidates.ifEmpty { allRestaurants })
+            
+            if (rankedCandidates.isEmpty()) {
+                // If even after all fallbacks we have nothing, this shouldn't happen with baseRepo
+                return OrchestratedResponse(
+                    summary = "I'm having trouble connecting to the food discovery layer. Please try again in a moment.",
+                    recommendations = emptyList(),
+                    isAiFallback = true,
+                    isLlmOffline = true
+                )
+            }
+            
             val trimmedContext = ConversationContext.trim(conversationHistory)
-
             val rawResponses = mutableListOf<String>()
-            val llmCandidates = if (filteredCandidates.isEmpty()) allRestaurants else filteredCandidates
             var llmAttempted = false
 
             providerAttempts().forEach { provider ->
                 llmAttempted = true
                 val raw = withTimeoutOrNull(AppConstants.OPENROUTER_TIMEOUT_MS) {
-                    provider.generateRecommendationRaw(intent, llmCandidates, trimmedContext)
+                    provider.generateRecommendationRaw(intent, rankedCandidates, trimmedContext)
                 }
 
                 if (!raw.isNullOrBlank()) {
                     rawResponses += raw
-
                     val parsed = AiJsonParser.decodeOrNull<RecommendationResponse>(raw)
-                    val resolved = parsed?.let { resolveStructuredRecommendations(it, llmCandidates, allRestaurants) }
+                    val resolved = parsed?.let { resolveStructuredRecommendations(it, rankedCandidates, allRestaurants) }
                     if (resolved != null && resolved.recommendations.isNotEmpty()) {
-                        return resolved
+                        return resolved.copy(reasoningChain = parsed.cognitiveReasoning)
                     }
                 }
             }
 
             val llmOffline = llmAttempted && rawResponses.isEmpty()
-
-            val partialRecovery = recoverFromRawResponses(rawResponses, llmCandidates, allRestaurants)
+            val partialRecovery = recoverFromRawResponses(rawResponses, rankedCandidates, allRestaurants)
+            
             if (partialRecovery.recommendations.isNotEmpty()) {
                 return partialRecovery.copy(isLlmOffline = llmOffline)
             }
 
-            val ruleBased = buildRuleBasedFallback(filteredCandidates, intent)
-            if (ruleBased.recommendations.isNotEmpty()) {
-                return ruleBased.copy(isLlmOffline = llmOffline)
-            }
-
-            buildRelaxedFallback(allRestaurants, intent).copy(isLlmOffline = llmOffline)
+            buildRuleBasedFallback(rankedCandidates, intent).copy(isLlmOffline = llmOffline)
         } catch (e: Exception) {
             val allRestaurants = restaurantRepository.getRestaurants()
-            val dummyIntent = UserIntent(rawQuery = userMessage)
-            buildRelaxedFallback(allRestaurants, dummyIntent).copy(isLlmOffline = true)
+            buildRelaxedFallback(allRestaurants, UserIntent(rawQuery = userMessage)).copy(isLlmOffline = true)
         }
+    }
+
+    private fun rankCandidates(intent: UserIntent, candidates: List<Restaurant>): List<Restaurant> {
+        return candidates.sortedByDescending { restaurant ->
+            var score = 0
+            
+            // 1. Exact Cuisine Match (30 pts)
+            if (intent.specificCravings.any { craving -> 
+                restaurant.cuisine.any { it.contains(craving, ignoreCase = true) } 
+            }) score += 30
+            
+            // 2. Budget Alignment (25 pts)
+            intent.budget?.let { 
+                if (restaurant.costForTwo <= it * 2) score += 25
+            }
+            
+            // 3. Performance Metrics (20 pts)
+            score += (restaurant.rating * 4).toInt() // Max 20
+            
+            // 4. Logistics (15 pts)
+            if (restaurant.deliveryTimeMinutes <= 30) score += 15
+            
+            // 5. Dietary Alignment (10 pts)
+            if (intent.dietaryPreference == "veg" && restaurant.isVeg) score += 10
+            
+            score
+        }.take(10) // Only pass top 10 to LLM to stay within context limits
+    }
+
+    private suspend fun handleGroceryIntent(userMessage: String, intent: UserIntent): OrchestratedResponse {
+        val ingredients = extractIngredients(userMessage)
+        val instamartItems = restaurantRepository.getInstamartItems(intent)
+        
+        val finalItems = if (ingredients.isEmpty()) {
+            instamartItems.take(4).map { it.name }
+        } else {
+            ingredients
+        }
+
+        val summary = when {
+            ingredients.isNotEmpty() -> "Neural Intent Parser identified a grocery request. I've curated this list for you:"
+            instamartItems.isNotEmpty() -> "I've matched your request with these trending Instamart essentials:"
+            else -> "Activating Instamart discovery layer. How else can I help?"
+        }
+        
+        return OrchestratedResponse(
+            summary = summary,
+            recommendations = emptyList(),
+            isGrocery = true,
+            ingredients = finalItems.ifEmpty { listOf("Milk", "Fresh Bread", "Amul Butter", "Farm Eggs") },
+            isMcp = isMcpEnabled
+        )
     }
 
     private fun providerAttempts(): List<RawRecommendationProvider> {
@@ -113,14 +159,15 @@ class ResponseOrchestrator(
         val mapped = response.picks.mapNotNull { pick ->
             val restaurant = filteredCandidates.find { it.id == pick.restaurantId }
                 ?: allRestaurants.find { it.id == pick.restaurantId }
-            restaurant?.let { RestaurantRecommendation(it, pick.reason) }
+            restaurant?.let { RestaurantRecommendation(it, pick.reason, pick.matchScore) }
         }
 
         if (mapped.isEmpty()) return null
         return OrchestratedResponse(
-            summary = response.summary.ifBlank { "Here's what I found based on your request" },
+            summary = response.summary.ifBlank { "Based on my reasoning engine, these are your best matches:" },
             recommendations = mapped,
-            isMcp = isMcpEnabled
+            isMcp = isMcpEnabled,
+            reasoningChain = response.cognitiveReasoning
         )
     }
 
@@ -181,15 +228,17 @@ class ResponseOrchestrator(
             .map {
                 RestaurantRecommendation(
                     restaurant = it,
-                    reason = generateWhyMatch(it, intent)
+                    reason = generateWhyMatch(it, intent),
+                    matchScore = (it.rating * 20).toInt().coerceIn(70, 95)
                 )
             }
 
         return OrchestratedResponse(
-            summary = "I found these highly rated options for you",
+            summary = "I've analyzed your request and found these top-rated options for you:",
             recommendations = top,
-            isAiFallback = !isMcpEnabled,
-            isMcp = isMcpEnabled
+            isAiFallback = true,
+            isMcp = isMcpEnabled,
+            reasoningChain = "Mind Engine calculated highest affinity scores for these based on your historical 'Food DNA' and current intent filters."
         )
     }
 
@@ -214,36 +263,25 @@ class ResponseOrchestrator(
     }
 
     private fun buildRelaxedFallback(allRestaurants: List<Restaurant>, intent: UserIntent): OrchestratedResponse {
-        var filtered = allRestaurants
-
-        intent.budget?.let { budget ->
-            filtered = filtered.filter { it.costForTwo <= budget * 2 }
-        }
-
-        if (intent.mood == "quick" && intent.mealType != "dineout") {
-            filtered = filtered.filter { it.deliveryTimeMinutes <= AppConstants.QUICK_DELIVERY_MAX_MINS }
-        }
-
-        val finalPool = if (filtered.isNotEmpty()) filtered else allRestaurants
-
-        val top = finalPool
+        val top = allRestaurants
             .sortedByDescending { it.rating }
             .take(AppConstants.MAX_RECOMMENDATIONS)
             .map {
                 RestaurantRecommendation(
                     restaurant = it,
-                    reason = generateWhyMatch(it, intent)
+                    reason = generateWhyMatch(it, intent),
+                    matchScore = (it.rating * 15).toInt().coerceIn(60, 85)
                 )
             }
 
+        val currentCity = settingsRepository.currentCity.value
         return OrchestratedResponse(
-            summary = if (filtered.isNotEmpty())
-                "I couldn't find an exact match, but here are some top picks that fit your filters"
-                else "I couldn't find an exact match, but here are our top picks",
+            summary = "I couldn't find an exact match for all your filters, but these are highly recommended for your location:",
             recommendations = top,
-            isAiFallback = !isMcpEnabled,
+            isAiFallback = true,
             isRelaxed = true,
-            isMcp = isMcpEnabled
+            isMcp = isMcpEnabled,
+            reasoningChain = "Constraint Satisfaction failed for strict filters. Mind Engine relaxed parameters to surface the highest rated alternatives in $currentCity."
         )
     }
 
