@@ -92,5 +92,6 @@ data class OrchestratedResponse(
     val isGrocery: Boolean = false,
     val isLlmOffline: Boolean = false,
     val isMcp: Boolean = false,
+    val isRefinement: Boolean = false,
     val aiStatus: String = "CLOUD" // "CLOUD", "MCP", "FALLBACK"
 )

@@ -459,6 +459,27 @@ fun ChatBubble(
                     fontWeight = FontWeight.Bold,
                     color = if (isLive || message.isMcp) SwiggyColors.Success else SwiggyColors.Subtle
                 )
+
+                if (message.isRefinement) {
+                    Text(
+                        text = "  •  ",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = SwiggyColors.Border
+                    )
+                    Surface(
+                        color = SwiggyColors.PrimaryContainer,
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = "Refined from last search",
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = SwiggyColors.Primary,
+                            fontSize = 9.sp
+                        )
+                    }
+                }
             }
         }
 
@@ -707,8 +728,19 @@ fun RecommendationCard(
                         color = SwiggyColors.Subtle,
                         modifier = Modifier.padding(vertical = 2.dp)
                     )
+
+                    // Reasoning Summary Line (Visible by default)
+                    Text(
+                        text = reasoning,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = SwiggyColors.Primary,
+                        modifier = Modifier.padding(vertical = 2.dp),
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
                     
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     
                     Surface(
                         shape = RoundedCornerShape(4.dp),

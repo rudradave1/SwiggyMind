@@ -36,7 +36,8 @@ class ResponseOrchestrator(
             }
 
             // Stateful Logic: Merge current intent with last known preferences if turn is short
-            val contextIntent = if (userMessage.length < 15) {
+            val shouldRefine = userMessage.length < 15 && lastIntent != null
+            val contextIntent = if (shouldRefine) {
                 mergeIntents(intent, lastIntent)
             } else intent
             
@@ -81,7 +82,10 @@ class ResponseOrchestrator(
                     val parsed = AiJsonParser.decodeOrNull<RecommendationResponse>(raw)
                     val resolved = parsed?.let { resolveStructuredRecommendations(it, rankedCandidates, allRestaurants) }
                     if (resolved != null && resolved.recommendations.isNotEmpty()) {
-                        return resolved.copy(reasoningChain = parsed.cognitiveReasoning)
+                        return resolved.copy(
+                            reasoningChain = parsed.cognitiveReasoning,
+                            isRefinement = shouldRefine
+                        )
                     }
                 }
             }
@@ -90,10 +94,10 @@ class ResponseOrchestrator(
             val partialRecovery = recoverFromRawResponses(rawResponses, rankedCandidates, allRestaurants)
             
             if (partialRecovery.recommendations.isNotEmpty()) {
-                return partialRecovery.copy(isLlmOffline = llmOffline)
+                return partialRecovery.copy(isLlmOffline = llmOffline, isRefinement = shouldRefine)
             }
 
-            buildRuleBasedFallback(rankedCandidates, contextIntent).copy(isLlmOffline = llmOffline)
+            buildRuleBasedFallback(rankedCandidates, contextIntent).copy(isLlmOffline = llmOffline, isRefinement = shouldRefine)
         } catch (e: Exception) {
             val allRestaurants = restaurantRepository.getRestaurants()
             buildRelaxedFallback(allRestaurants, UserIntent(rawQuery = userMessage)).copy(isLlmOffline = true)
@@ -270,26 +274,21 @@ class ResponseOrchestrator(
         val features = mutableListOf<String>()
         
         // Match Analysis for Decision Quality
-        if (intent.dietaryPreference == "veg" && restaurant.isVeg) features.add("100% Veg")
-        if (restaurant.rating >= 4.5) features.add("Elite Rated")
-        if (restaurant.deliveryTimeMinutes <= 25) features.add("Hyper-local Delivery")
-        
         val cravingMatch = intent.specificCravings.any { craving -> 
             restaurant.cuisine.any { it.contains(craving, ignoreCase = true) } 
         }
-        if (cravingMatch) features.add("Exact Craving Match")
+        if (cravingMatch) features.add("Matches ${intent.specificCravings.first()}")
         
         if (intent.budget != null && restaurant.costForTwo <= intent.budget * 2) {
-            features.add("Budget Optimized")
-        }
-
-        val primaryReason = if (features.isNotEmpty()) {
-            features.take(3).joinToString(" + ") + " → Ranked Top Pick"
+            features.add("Under ₹${intent.budget}")
         } else {
-            "High Affinity Score based on Mind Engine analysis"
+            features.add("₹${restaurant.costForTwo/2} per person")
         }
 
-        return primaryReason
+        features.add("Rated ${restaurant.rating}★")
+        features.add("${restaurant.deliveryTimeMinutes} min delivery")
+
+        return features.joinToString(" · ")
     }
 
     private fun buildRelaxedFallback(allRestaurants: List<Restaurant>, intent: UserIntent): OrchestratedResponse {

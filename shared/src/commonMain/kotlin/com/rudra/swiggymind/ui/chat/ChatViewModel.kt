@@ -95,7 +95,8 @@ class ChatViewModel(
                             isGrocery = entity.isGrocery,
                             ingredients = ingredients,
                             reasoningChain = entity.reasoningChain,
-                            isMcp = entity.isMcp
+                            isMcp = entity.isMcp,
+                            isRefinement = entity.isRefinement
                         )
                     )
                 }
@@ -154,7 +155,8 @@ class ChatViewModel(
                     isGrocery = response.isGrocery,
                     ingredients = response.ingredients,
                     isMcp = response.isMcp,
-                    reasoningChain = response.reasoningChain
+                    reasoningChain = response.reasoningChain,
+                    isRefinement = response.isRefinement
                 )
 
                 val newAiStatus = when {
@@ -222,6 +224,7 @@ class ChatViewModel(
                         isAiFallback = response.isAiFallback,
                         isRelaxed = response.isRelaxed,
                         isMcp = response.isMcp,
+                        isRefinement = response.isRefinement,
                         timestamp = now,
                         reasoningChain = response.reasoningChain
                     )
@@ -256,5 +259,6 @@ data class ChatMessage(
     val isGrocery: Boolean = false,
     val ingredients: List<String> = emptyList(),
     val isMcp: Boolean = false,
-    val reasoningChain: String? = null
+    val reasoningChain: String? = null,
+    val isRefinement: Boolean = false
 )
