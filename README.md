@@ -3,7 +3,7 @@
 > A Context-Aware Reasoning Engine for Hyper-Personalized Food Discovery.
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/51aa3505-83f1-4c7b-a480-186e996bdfe3" width="280" alt="SwiggyMind Demo"/>
+  <img width="240" height="532" alt="screen_record_swiggymind" src="https://github.com/user-attachments/assets/b8d48166-720e-4e39-8906-58041e588672" width="280" alt="SwiggyMind Demo"/>  
 </p>
 
 <p align="center">
@@ -52,10 +52,6 @@ SwiggyMind remembers context across turns. It doesn't treat every message as a n
 - **Robust Fallback Strategy**: 3-layer execution stack (Cloud LLM → Rule-Based → Heuristic) ensures the app works offline or when API limits are reached.
 - **Kotlin Multiplatform (KMP)**: 100% of the Mind Engine logic is shared between platforms.
 - **Structured Discovery**: Enforced JSON schemas ensure zero-hallucination results.
-
-## 👨‍💻 Built by
-**Rudra Dave** — Senior Android Engineer
-*Dedicated to building the next generation of food discovery at Swiggy.*
 
 ---
 <sub>Built for Swiggy Builders Club · Not an official Swiggy product</sub>
