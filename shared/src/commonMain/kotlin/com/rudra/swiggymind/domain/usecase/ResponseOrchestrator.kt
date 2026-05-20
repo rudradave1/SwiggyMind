@@ -20,6 +20,8 @@ class ResponseOrchestrator(
     private val restaurantRepository: RestaurantRepository,
     private val isMcpEnabled: Boolean = false
 ) {
+    private val parseIntentUseCase = ParseIntentUseCase(settingsRepository)
+
     // Session-level "Mind Cache" for stateful reasoning
     private var lastIntent: UserIntent? = null
 
@@ -28,28 +30,38 @@ class ResponseOrchestrator(
         conversationHistory: List<LlmMessage> = emptyList()
     ): OrchestratedResponse {
         return try {
-            val intent = HeuristicIntentParser.parse(userMessage).copy(rawQuery = userMessage)
+            // Intelligence Layer: LLM-First Intent Parsing with heuristic fallback
+            val intent = parseIntentUseCase(userMessage, conversationHistory)
             
             // Intelligence Layer: Intent Validation
             if (intent.mealType == "grocery") {
                 return handleGroceryIntent(userMessage, intent)
             }
 
-            // Stateful Logic: Merge current intent with last known preferences if turn is short
-            val shouldRefine = userMessage.length < 15 && lastIntent != null
-            val contextIntent = if (shouldRefine) {
+            // Stateful Logic: Use AI's decision on whether to refine
+            val contextIntent = if (intent.isRefinement && lastIntent != null) {
                 mergeIntents(intent, lastIntent)
             } else intent
             
             lastIntent = contextIntent
 
-            var allRestaurants = restaurantRepository.getRestaurants()
+            var allRestaurants = try {
+                restaurantRepository.getRestaurants()
+            } catch (e: Exception) {
+                emptyList()
+            }
+            
             if (allRestaurants.isEmpty()) {
-                // Critical Fallback: If primary repo (MCP) is empty, use mock data pool for reasoning
+                // Critical Fallback: Only use mock data if the primary repository fails completely
                 allRestaurants = MockRestaurantRepository(settingsRepository).getRestaurants()
             }
             
-            var filteredCandidates = restaurantRepository.getRestaurants(contextIntent)
+            var filteredCandidates = try {
+                restaurantRepository.getRestaurants(contextIntent)
+            } catch (e: Exception) {
+                emptyList()
+            }
+
             if (filteredCandidates.isEmpty() && allRestaurants.isNotEmpty()) {
                 filteredCandidates = allRestaurants
             }
@@ -84,7 +96,7 @@ class ResponseOrchestrator(
                     if (resolved != null && resolved.recommendations.isNotEmpty()) {
                         return resolved.copy(
                             reasoningChain = parsed.cognitiveReasoning,
-                            isRefinement = shouldRefine
+                            isRefinement = intent.isRefinement
                         )
                     }
                 }
@@ -94,10 +106,10 @@ class ResponseOrchestrator(
             val partialRecovery = recoverFromRawResponses(rawResponses, rankedCandidates, allRestaurants)
             
             if (partialRecovery.recommendations.isNotEmpty()) {
-                return partialRecovery.copy(isLlmOffline = llmOffline, isRefinement = shouldRefine)
+                return partialRecovery.copy(isLlmOffline = llmOffline, isRefinement = intent.isRefinement)
             }
 
-            buildRuleBasedFallback(rankedCandidates, contextIntent).copy(isLlmOffline = llmOffline, isRefinement = shouldRefine)
+            buildRuleBasedFallback(rankedCandidates, contextIntent).copy(isLlmOffline = llmOffline, isRefinement = intent.isRefinement)
         } catch (e: Exception) {
             val allRestaurants = restaurantRepository.getRestaurants()
             buildRelaxedFallback(allRestaurants, UserIntent(rawQuery = userMessage)).copy(isLlmOffline = true)
@@ -137,7 +149,7 @@ class ResponseOrchestrator(
             if (intent.dietaryPreference == "veg" && restaurant.isVeg) score += 10
             
             // 6. Statefulness Boost (Extra): Prioritize consistency for refinements
-            if (lastIntent?.specificCravings?.any { c -> restaurant.cuisine.contains(c) } == true) {
+            if (lastIntent?.specificCravings?.any { c: String -> restaurant.cuisine.contains(c) } == true) {
                 score += 5
             }
             
@@ -145,19 +157,14 @@ class ResponseOrchestrator(
         }.take(10) // Only pass top 10 to LLM to stay within context limits
     }
 
-    private suspend fun handleGroceryIntent(userMessage: String, intent: UserIntent): OrchestratedResponse {
-        val ingredients = extractIngredients(userMessage)
-        val instamartItems = restaurantRepository.getInstamartItems(intent)
-        
-        val finalItems = if (ingredients.isEmpty()) {
-            instamartItems.take(4).map { it.name }
-        } else {
-            ingredients
+    private fun handleGroceryIntent(userMessage: String, intent: UserIntent): OrchestratedResponse {
+        val finalItems = intent.extractedIngredients.ifEmpty {
+            // If AI failed to extract but identified grocery, use fallback extraction
+            extractIngredients(userMessage)
         }
 
         val summary = when {
-            ingredients.isNotEmpty() -> "Neural Intent Parser identified a grocery request. I've curated this list for you:"
-            instamartItems.isNotEmpty() -> "I've matched your request with these trending Instamart essentials:"
+            finalItems.isNotEmpty() -> "Neural Intent Parser identified a grocery request. I've curated this list for you:"
             else -> "Activating Instamart discovery layer. How else can I help?"
         }
         
@@ -165,7 +172,7 @@ class ResponseOrchestrator(
             summary = summary,
             recommendations = emptyList(),
             isGrocery = true,
-            ingredients = finalItems.ifEmpty { listOf("Milk", "Fresh Bread", "Amul Butter", "Farm Eggs") },
+            ingredients = finalItems.ifEmpty { listOf("Milk", "Fresh Bread", "Curd", "Eggs") },
             isMcp = isMcpEnabled
         )
     }
@@ -173,7 +180,7 @@ class ResponseOrchestrator(
     private fun providerAttempts(): List<RawRecommendationProvider> {
         val providers = mutableListOf<RawRecommendationProvider>()
         val apiKey = settingsRepository.openRouterApiKey.value.trim()
-        if (apiKey.isNotBlank() && !apiKey.contains("dummy")) {
+        if (apiKey.isNotBlank()) {
             providers += OpenRouterProvider(OpenRouterClient(apiKey))
         }
         return providers

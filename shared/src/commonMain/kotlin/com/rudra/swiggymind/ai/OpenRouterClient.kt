@@ -39,7 +39,9 @@ class OpenRouterClient(
               "location": string or null,
               "spiceLevel": "mild" | "medium" | "spicy" | null,
               "excludes": ["string"] or null,
-              "partySize": number or null
+              "partySize": number or null,
+              "isRefinement": boolean (true if the user is refining their previous request like 'make it veg' or 'add more spicy'),
+              "extractedIngredients": ["string"] (if the user is asking for groceries/items, extract them here)
             }
         """.trimIndent()
 

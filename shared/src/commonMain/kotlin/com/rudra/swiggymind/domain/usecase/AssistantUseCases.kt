@@ -17,7 +17,7 @@ class ParseIntentUseCase(private val settingsRepository: SettingsRepository) {
     ): UserIntent {
         val trimmedContext = ConversationContext.trim(conversationHistory)
         val apiKey = settingsRepository.openRouterApiKey.value
-        val client = if (apiKey.isNotBlank() && !apiKey.contains("dummy")) {
+        val client = if (apiKey.isNotBlank()) {
             OpenRouterClient(apiKey)
         } else null
 
@@ -47,7 +47,7 @@ class GetAIRecommendationsUseCase(
 
         val trimmedContext = ConversationContext.trim(conversationHistory)
         val apiKey = settingsRepository.openRouterApiKey.value
-        val client = if (apiKey.isNotBlank() && !apiKey.contains("dummy")) {
+        val client = if (apiKey.isNotBlank()) {
             OpenRouterClient(apiKey)
         } else null
 

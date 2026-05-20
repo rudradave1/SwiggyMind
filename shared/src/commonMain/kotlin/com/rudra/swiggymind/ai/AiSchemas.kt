@@ -27,7 +27,9 @@ object AiSchemas {
                                     "location" to nullableStringProperty(),
                                     "spiceLevel" to nullableStringProperty(),
                                     "excludes" to stringArrayProperty(),
-                                    "partySize" to nullableNumberProperty()
+                                    "partySize" to nullableNumberProperty(),
+                                    "isRefinement" to JsonObject(mapOf("type" to JsonPrimitive("boolean"))),
+                                    "extractedIngredients" to stringArrayProperty()
                                 )
                             ),
                             "required" to JsonArray(
@@ -42,7 +44,9 @@ object AiSchemas {
                                     JsonPrimitive("location"),
                                     JsonPrimitive("spiceLevel"),
                                     JsonPrimitive("excludes"),
-                                    JsonPrimitive("partySize")
+                                    JsonPrimitive("partySize"),
+                                    JsonPrimitive("isRefinement"),
+                                    JsonPrimitive("extractedIngredients")
                                 )
                             ),
                             "additionalProperties" to JsonPrimitive(false)

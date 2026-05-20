@@ -58,6 +58,8 @@ data class UserIntent(
     val spiceLevel: String? = null, // "mild" | "medium" | "spicy"
     val excludes: List<String> = emptyList(),
     val partySize: Int? = null,
+    val isRefinement: Boolean = false, // AI decides if this should merge with previous context
+    val extractedIngredients: List<String> = emptyList(), // For Instamart/Grocery flows
     val reasoningChain: String? = null, // AI's internal thought process
     val rawQuery: String = ""
 )
