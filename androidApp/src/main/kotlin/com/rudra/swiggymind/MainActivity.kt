@@ -1,8 +1,10 @@
 package com.rudra.swiggymind
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Geocoder
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -45,6 +47,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
+        // Handle OAuth callback if app was launched from redirect
+        handleOAuthCallback(intent)
+
         detectLocation()
 
         setContent {
@@ -52,6 +57,43 @@ class MainActivity : ComponentActivity() {
                 MainScreen()
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // Handle OAuth callback when app is already running
+        handleOAuthCallback(intent)
+    }
+
+    private fun handleOAuthCallback(intent: Intent?) {
+        intent?.data?.let { uri ->
+            if (uri.scheme == "swiggymind" && uri.host == "auth") {
+                val code = uri.getQueryParameter("code")
+                val state = uri.getQueryParameter("state")
+                val error = uri.getQueryParameter("error")
+
+                if (error != null) {
+                    // Handle OAuth error
+                    android.util.Log.e("OAuth", "OAuth error: $error")
+                    return
+                }
+
+                if (code != null) {
+                    // Exchange authorization code for access token
+                    lifecycleScope.launch {
+                        exchangeCodeForToken(code)
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun exchangeCodeForToken(code: String) {
+        // TODO: Implement token exchange when Swiggy provides OAuth client credentials
+        // For now, just log the code for testing
+        android.util.Log.d("OAuth", "Received authorization code: $code")
+        // In production: POST to Swiggy's token endpoint with code + redirect_uri + client_id + client_secret
+        // Store resulting access_token in SettingsRepository
     }
 
     private fun detectLocation() {
